@@ -1,0 +1,11 @@
+from app.agents.base import Agent
+from app.models.domain import AgentDecision
+
+
+class SecurityAgent(Agent):
+    name = "telemetry-integrity-agent"
+
+    def decide(self, context: dict) -> AgentDecision:
+        integrity = context["telemetry_integrity"]
+        action = "quarantine-and-require-human-review" if integrity < .65 else "continue-with-provenance"
+        return AgentDecision(agent=self.name, action=action, confidence=round(max(.55, 1-abs(.8-integrity)), 3), explanation=f"Telemetry integrity score is {integrity:.2f}; recommendations are constrained by evidence reliability.")

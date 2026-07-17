@@ -1,0 +1,75 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "hospital_id": "HOSP-DFW-001",
+        "synthetic": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.235,
+          32.998
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "hospital_id": "HOSP-DFW-002",
+        "synthetic": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.041,
+          32.902
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "hospital_id": "HOSP-DFW-003",
+        "synthetic": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -97.195,
+          32.991
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "hospital_id": "HOSP-DFW-004",
+        "synthetic": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -96.998,
+          32.735
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "hospital_id": "HOSP-DFW-005",
+        "synthetic": true
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -96.612,
+          32.812
+        ]
+      }
+    }
+  ]
+}

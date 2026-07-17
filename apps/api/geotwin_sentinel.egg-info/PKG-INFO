@@ -1,0 +1,20 @@
+Metadata-Version: 2.4
+Name: geotwin-sentinel
+Version: 0.1.0
+Summary: Agentic digital twin for secure and trustworthy healthcare infrastructure
+Requires-Python: >=3.11
+License-File: LICENSE
+Requires-Dist: fastapi<1,>=0.115
+Requires-Dist: uvicorn[standard]<1,>=0.30
+Requires-Dist: pydantic-settings<3,>=2.6
+Requires-Dist: networkx<4,>=3.3
+Requires-Dist: opentelemetry-api<2,>=1.27
+Requires-Dist: opentelemetry-sdk<2,>=1.27
+Requires-Dist: opentelemetry-exporter-otlp-proto-grpc<2,>=1.27
+Requires-Dist: opentelemetry-instrumentation-fastapi<1,>=0.48b0
+Requires-Dist: opentelemetry-instrumentation-logging<1,>=0.48b0
+Provides-Extra: dev
+Requires-Dist: pytest<9,>=8.3; extra == "dev"
+Requires-Dist: httpx<1,>=0.27; extra == "dev"
+Requires-Dist: ruff<1,>=0.7; extra == "dev"
+Dynamic: license-file
