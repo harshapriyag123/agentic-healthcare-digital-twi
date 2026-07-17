@@ -1,0 +1,19 @@
+{
+  "scenario_name": "flood-grid-cascade",
+  "horizon_hours": 48,
+  "demand_multiplier": 1.2,
+  "hazard": {
+    "heat_index": 92,
+    "flood_severity": 0.9,
+    "air_quality_index": 70,
+    "grid_outage_probability": 0.8
+  },
+  "cyber_event": {
+    "target_hospital_id": "HOSP-DFW-004",
+    "severity": 0.25,
+    "attack_type": "credential-abuse",
+    "telemetry_tampering": 0.15
+  },
+  "missing_telemetry_ratio": 0.2,
+  "enable_counterfactuals": true
+}

@@ -1,0 +1,14 @@
+fastapi<1,>=0.115
+uvicorn[standard]<1,>=0.30
+pydantic-settings<3,>=2.6
+networkx<4,>=3.3
+opentelemetry-api<2,>=1.27
+opentelemetry-sdk<2,>=1.27
+opentelemetry-exporter-otlp-proto-grpc<2,>=1.27
+opentelemetry-instrumentation-fastapi<1,>=0.48b0
+opentelemetry-instrumentation-logging<1,>=0.48b0
+
+[dev]
+pytest<9,>=8.3
+httpx<1,>=0.27
+ruff<1,>=0.7

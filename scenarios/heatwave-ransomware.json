@@ -1,0 +1,19 @@
+{
+  "scenario_name": "heatwave-ransomware",
+  "horizon_hours": 24,
+  "demand_multiplier": 1.35,
+  "hazard": {
+    "heat_index": 112,
+    "flood_severity": 0.1,
+    "air_quality_index": 155,
+    "grid_outage_probability": 0.35
+  },
+  "cyber_event": {
+    "target_hospital_id": "HOSP-DFW-002",
+    "severity": 0.85,
+    "attack_type": "ransomware",
+    "telemetry_tampering": 0.2
+  },
+  "missing_telemetry_ratio": 0.1,
+  "enable_counterfactuals": true
+}
