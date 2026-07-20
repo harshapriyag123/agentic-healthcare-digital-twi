@@ -10,7 +10,10 @@ _lock = Lock()
 
 def store_simulation(request: SimulationRequest, response: SimulationResponse) -> None:
     with _lock:
-        _results[response.simulation_id] = (request.model_copy(deep=True), response.model_copy(deep=True))
+        _results[response.simulation_id] = (
+            request.model_copy(deep=True),
+            response.model_copy(deep=True),
+        )
         _results.move_to_end(response.simulation_id)
         while len(_results) > _MAX_RESULTS:
             _results.popitem(last=False)

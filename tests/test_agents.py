@@ -56,11 +56,16 @@ def test_failed_security_agent_requires_review_and_reduces_confidence(monkeypatc
 
     monkeypatch.setattr(SecurityAgent, "decide", fail_security)
     result = run_simulation(request())
-    security = next(record for record in result.agent_decisions if record.agent == "telemetry-integrity-agent")
+    security = next(
+        record for record in result.agent_decisions if record.agent == "telemetry-integrity-agent"
+    )
 
     assert security.status == "failed"
     assert security.human_review_required
-    assert security.error == "Agent execution failed safely. Review backend telemetry for diagnostic details."
+    assert (
+        security.error
+        == "Agent execution failed safely. Review backend telemetry for diagnostic details."
+    )
     assert result.trust.human_review_required
     assert result.trust.recommendation_confidence < baseline.trust.recommendation_confidence
 
@@ -71,7 +76,9 @@ def test_failed_planning_agent_returns_no_unsafe_intervention(monkeypatch) -> No
 
     monkeypatch.setattr(PlanningAgent, "decide", fail_planning)
     result = run_simulation(request())
-    planning = next(record for record in result.agent_decisions if record.agent == "resilience-planning-agent")
+    planning = next(
+        record for record in result.agent_decisions if record.agent == "resilience-planning-agent"
+    )
 
     assert planning.status == "failed"
     assert planning.action == "defer-to-human-review"

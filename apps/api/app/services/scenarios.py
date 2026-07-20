@@ -18,7 +18,9 @@ def _load_scenarios() -> list[ScenarioCatalogItem]:
                 id=request.scenario_name,
                 name=payload.get("display_name") or request.scenario_name.replace("-", " ").title(),
                 category=payload.get("category", "compound-disruption"),
-                description=payload.get("description", "Synthetic scenario for digital twin evaluation."),
+                description=payload.get(
+                    "description", "Synthetic scenario for digital twin evaluation."
+                ),
                 tags=payload.get("tags", []),
                 severity=payload.get("severity", "medium"),
                 request=request,

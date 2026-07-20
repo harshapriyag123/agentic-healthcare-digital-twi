@@ -79,7 +79,17 @@ class EvidenceItem(BaseModel):
     source_name: str | None = None
     source_type: str = "synthetic-telemetry"
     unit: str | None = None
-    integrity_status: Literal["verified", "acceptable", "degraded", "missing", "stale", "conflicting", "suspected-tampering", "rejected", "unknown"] = "unknown"
+    integrity_status: Literal[
+        "verified",
+        "acceptable",
+        "degraded",
+        "missing",
+        "stale",
+        "conflicting",
+        "suspected-tampering",
+        "rejected",
+        "unknown",
+    ] = "unknown"
     provenance_status: Literal["validated-lineage", "basic-lineage", "gap", "unknown"] = "unknown"
     freshness_status: Literal["current", "stale", "unknown"] = "unknown"
     observed_at: str | None = None
@@ -208,7 +218,9 @@ class CounterfactualRunRequest(BaseModel):
 class InterventionDefinition(BaseModel):
     id: str
     name: str
-    category: Literal["baseline", "cyber", "capacity", "infrastructure", "transport", "telemetry", "combined"]
+    category: Literal[
+        "baseline", "cyber", "capacity", "infrastructure", "transport", "telemetry", "combined"
+    ]
     description: str
     affected_parameters: list[str]
     applicable_scenarios: list[str]
@@ -312,7 +324,9 @@ class AgentDecision(BaseModel):
     component_type: Literal["agent", "system"] = "agent"
     purpose: str | None = None
     stage: str | None = None
-    status: Literal["queued", "running", "completed", "warning", "failed", "skipped", "human-review-required"] = "completed"
+    status: Literal[
+        "queued", "running", "completed", "warning", "failed", "skipped", "human-review-required"
+    ] = "completed"
     sequence: int | None = Field(default=None, ge=1)
     evidence_ids: list[str] = Field(default_factory=list)
     started_at: str | None = None
