@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Private security report
+    url: https://github.com/harshapriyag123/agentic-healthcare-digital-twi/security
+    about: Read SECURITY.md and use private reporting where enabled; never disclose secrets or sensitive healthcare/security details publicly.

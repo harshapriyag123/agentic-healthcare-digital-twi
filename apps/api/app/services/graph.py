@@ -1,4 +1,5 @@
 import networkx as nx
+
 from app.models.domain import Hospital
 
 

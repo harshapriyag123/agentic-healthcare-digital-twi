@@ -1,0 +1,17 @@
+# Ten-minute technical walkthrough
+
+| Time / UI | Source area | Main technical point | Likely question → concise answer |
+|---|---|---|---|
+| 0:00 Overview | `apps/web/src/pages/LandingPage.tsx` | Consistent synthetic research framing and live API catalog status | “Is this deployed at hospitals?” → No; it has no real facility integration or operational authority. |
+| 0:40 Architecture | `apps/api/app/main.py`, `apps/web/src/App.tsx` | React SPA, versioned FastAPI API, packaged data, process-local baselines | “Why one worker?” → Counterfactual/trust lookup currently depends on process-local simulation IDs. |
+| 1:25 Command Center request | `scenarios/wildfire-telemetry.json`, `services/scenarios.py` | Catalog JSON is validated into the real simulation request | “Is the demo hardcoded?” → Inputs are fixed for reproducibility; results are calculated by the shared engine. |
+| 2:05 Results/GIS | `services/twin.py`, `graph.py`, `data/hospitals.geojson` | Hazard, demand, capacity, dependencies, cyber loss, risk, resilience, transfer constraints | “Is this a calibrated hospital model?” → No; it is a simplified synthetic research model. |
+| 3:00 Agent Console | `agents/`, `agents/orchestrator.py` | Sequential rule agents, evidence dependencies, safe records, trace linkage | “Are these LLM agents?” → No; deterministic rules make this artifact auditable and repeatable. |
+| 3:50 Counterfactuals | `services/counterfactuals.py` | Copy baseline request, apply bounded transform, rerun evaluator, compare exact stored baseline | “Does this prove causality?” → No; these are within-model sensitivity comparisons. |
+| 4:55 Ranking | `counterfactuals.py`, `counterfactualUtils.ts` | Normalized benefits and burdens; weight controls rerank existing outcomes | “Can sliders change the simulation?” → No, they change prioritization only. |
+| 5:40 Trust | `services/trust.py`, `TrustDashboard.tsx` | Versioned weighted factors, evidence inventory, policies, uncertainty, review reasons | “Why trust this trust score?” → Inspectable inputs/contributions help audit it, but it is not externally calibrated or certified. |
+| 6:45 Evidence detail | `models/domain.py`, `services/trust.py` | Parent IDs and source metadata form basic lineage; rule checks identify gaps/conflicts | “Is provenance cryptographic?” → No; cryptographic attestation is future work. |
+| 7:30 SigNoz | `core/telemetry.py`, instrumentation in services/agents | Trace ID correlates request and domain work; metrics/logs add population/diagnostic views | “Does observability affect outcomes?” → Export is fail-open; absence reduces audit evidence, not simulation availability. |
+| 8:25 Deployment | `Dockerfile`, `render.yaml`, `vercel.json` | Non-root single-worker API, static SPA, server-only OTLP secrets, strict production config | “Production ready?” → Deployment-ready for a synthetic hackathon demo, not healthcare production. |
+| 9:05 Tests | `tests/`, `apps/web/src/test/`, `scripts/smoke_test.py` | Scenario distinctiveness, API/trust/counterfactual/agent behavior, UI utilities/routes, production smoke | “What has been evaluated?” → Automated functional evidence; no clinical, causal, security, or user-study validation. |
+| 9:40 Limitations | `docs/research/limitations.md` | State, model, accessibility, external service, and authority boundaries | “What next?” → Persistence, calibration, probabilistic experiments, stronger provenance/security, and expert evaluation. |

@@ -1,0 +1,16 @@
+name: Documentation issue
+description: Report missing, stale, conflicting, or inaccessible documentation.
+title: "[Docs]: "
+labels: [documentation]
+body:
+  - type: input
+    id: location
+    attributes: {label: Document or link}
+    validations: {required: true}
+  - type: textarea
+    id: issue
+    attributes: {label: Problem, description: Quote the claim/step and explain what is inaccurate or unclear.}
+    validations: {required: true}
+  - type: textarea
+    id: correction
+    attributes: {label: Suggested correction or verification}

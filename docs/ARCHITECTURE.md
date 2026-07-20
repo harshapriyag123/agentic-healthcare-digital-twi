@@ -1,11 +1,12 @@
-# Architecture
+# Architecture documentation
 
-GeoTwin Sentinel is organized as five research layers:
+The maintained architecture set is:
 
-1. **Evidence plane** — aggregate hazard, infrastructure, cyber and operational telemetry.
-2. **Digital-twin plane** — a directed dependency/referral graph and state-transition model.
-3. **Agent plane** — detection, telemetry-integrity and resilience-planning agents.
-4. **Trust plane** — evidence completeness, integrity, uncertainty, policy checks and mandatory human review.
-5. **Observability plane** — OpenTelemetry traces, metrics and semantic attributes exported to SigNoz.
+- [System architecture](architecture/system-architecture.md)
+- [Data flow](architecture/data-flow.md)
+- [Agent orchestration](architecture/agent-orchestration.md)
+- [Trust model](architecture/trust-model.md)
+- [Observability](architecture/observability.md)
+- [Deployment](architecture/deployment.md)
 
-The current implementation is deterministic and reproducible. It intentionally avoids patient-level data and autonomous clinical decisions.
+These documents describe the implemented synthetic research prototype; planned research remains separate.

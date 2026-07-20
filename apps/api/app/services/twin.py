@@ -1,11 +1,23 @@
+from datetime import UTC, datetime
 from math import exp
+from time import perf_counter
 from uuid import uuid4
+
 from opentelemetry import metrics, trace
+
 from app.agents.orchestrator import AgentOrchestrator
-from app.models.domain import CounterfactualResult, FacilityStatus, HospitalState, SimulationRequest, SimulationResponse, TransferAction, TrustRecord, EvidenceItem
+from app.models.domain import (
+    FacilityStatus,
+    HospitalState,
+    SimulationRequest,
+    SimulationResponse,
+    TransferAction,
+    TrustRecord,
+)
 from app.services.catalog import HOSPITALS, hospital_map
 from app.services.graph import build_infrastructure_graph, centrality_scores, dependency_pressure
 from app.services.integrity import assess_integrity
+from app.services.trust import evaluate_trust
 
 tracer = trace.get_tracer("geotwin.digital-twin")
 meter = metrics.get_meter("geotwin.digital-twin")
@@ -26,7 +38,13 @@ def _hazard_pressure(request: SimulationRequest) -> float:
     return min(1, .38*heat + .27*request.hazard.flood_severity + .2*air + .15*request.hazard.grid_outage_probability)
 
 
-def _evaluate_states(request: SimulationRequest, cyber_scale: float = 1, demand_scale: float = 1) -> list[HospitalState]:
+def _evaluate_states(
+    request: SimulationRequest,
+    cyber_scale: float = 1,
+    demand_scale: float = 1,
+    capacity_scale: float = 1,
+    demand_offsets: dict[str, float] | None = None,
+) -> list[HospitalState]:
     hazard = _hazard_pressure(request)
     failed_dependencies = {"GRID-CENTRAL"} if request.hazard.grid_outage_probability > .65 else set()
     states=[]
@@ -36,8 +54,9 @@ def _evaluate_states(request: SimulationRequest, cyber_scale: float = 1, demand_
             cyber_loss = request.cyber_event.severity * cyber_scale * (1-hospital.cyber_readiness) * (.9 if attacked else .08)
             dep = dependency_pressure(GRAPH, hospital.hospital_id, failed_dependencies)
             power_penalty = max(0, request.horizon_hours-hospital.backup_power_hours)/max(request.horizon_hours,1) * request.hazard.grid_outage_probability
-            effective = hospital.staffed_beds * max(.08, 1-cyber_loss-.25*dep-.2*power_penalty)
+            effective = hospital.staffed_beds * capacity_scale * max(.08, 1-cyber_loss-.25*dep-.2*power_penalty)
             demand = hospital.staffed_beds*hospital.baseline_occupancy*request.demand_multiplier*demand_scale*(1+.42*hazard)
+            demand = max(0, demand + (demand_offsets or {}).get(hospital.hospital_id, 0))
             load = demand/max(effective,1)
             criticality = CENTRALITY.get(hospital.hospital_id,.5)
             probability = _sigmoid(4.1*(load-1)+2.3*cyber_loss+1.4*hazard+1.1*dep+.6*criticality-1.35)
@@ -69,41 +88,65 @@ def _plan_transfers(states: list[HospitalState], source_id: str) -> list[Transfe
     return actions
 
 
-def _counterfactuals(request: SimulationRequest, baseline: float) -> list[CounterfactualResult]:
-    variants=[("segment compromised network",.35,1.0),("activate regional surge capacity",1.0,.82),("combined cyber containment and surge",.35,.82)]
-    results=[]
-    for name, cyber_scale, demand_scale in variants:
-        risk=_regional_risk(_evaluate_states(request,cyber_scale,demand_scale))
-        results.append(CounterfactualResult(intervention=name,regional_risk_score=round(risk,3),risk_reduction=round(max(0,baseline-risk),3)))
-    return sorted(results,key=lambda item:item.risk_reduction,reverse=True)
+def _calculate_trust(request: SimulationRequest, integrity: float, risk: float, transfers: list[TransferAction]) -> TrustRecord:
+    completeness=max(0,1-request.missing_telemetry_ratio)
+    uncertainty=min(1,.08+.42*(1-integrity)+.3*(1-completeness)+.2*_hazard_pressure(request))
+    confidence=max(0,completeness*integrity*(1-uncertainty))
+    return TrustRecord(
+        evidence_completeness=round(completeness,3),
+        telemetry_integrity=round(integrity,3),
+        uncertainty=round(uncertainty,3),
+        geographic_coverage=1.0,
+        policy_compliance=all(action.safety_constraints_satisfied for action in transfers),
+        recommendation_confidence=round(confidence,3),
+    )
+
+
+def _resilience(risk: float, integrity: float) -> float:
+    return max(0,1-risk*(1+.35*(1-integrity)))
 
 
 def run_simulation(request: SimulationRequest) -> SimulationResponse:
+    simulation_started = perf_counter()
     simulation_id=str(uuid4())
+    observed_at=datetime.now(UTC).isoformat()
     with tracer.start_as_current_span("digital_twin.run") as span:
+        span_context = span.get_span_context()
+        trace_id = f"{span_context.trace_id:032x}" if span_context.is_valid else None
         span.set_attributes({"geotwin.simulation.id":simulation_id,"geotwin.scenario.name":request.scenario_name,"geotwin.cyber.attack_type":request.cyber_event.attack_type,"geotwin.cyber.target":request.cyber_event.target_hospital_id,"ai.decision.human_review_required":True})
         if request.cyber_event.target_hospital_id not in hospital_map():
             raise ValueError("Unknown target hospital")
-        integrity, integrity_evidence=assess_integrity(request)
+        integrity, _=assess_integrity(request)
         states=_evaluate_states(request)
         risk=_regional_risk(states)
         transfers=_plan_transfers(states,request.cyber_event.target_hospital_id)
-        completeness=max(0,1-request.missing_telemetry_ratio)
-        uncertainty=min(1,.08+.42*(1-integrity)+.3*(1-completeness)+.2*_hazard_pressure(request))
-        confidence=max(0,completeness*integrity*(1-uncertainty))
-        policy=all(a.safety_constraints_satisfied for a in transfers)
-        evidence=integrity_evidence+[
-            EvidenceItem(source="digital-twin",signal="regional_risk",value=round(risk,3),reliability=confidence),
-            EvidenceItem(source="hazard-fusion",signal="compound_hazard_pressure",value=round(_hazard_pressure(request),3),reliability=.88),
-        ]
+        trust,evidence=evaluate_trust(request,simulation_id,states,transfers,risk,observed_at=observed_at)
+        confidence=trust.recommendation_confidence
         context={"hazard_pressure":_hazard_pressure(request),"cyber_severity":request.cyber_event.severity,"telemetry_integrity":integrity,"regional_risk":risk,"transfer_count":len(transfers),"trust_confidence":confidence}
-        decisions=AgentOrchestrator().run(context)
-        counterfactuals=_counterfactuals(request,risk) if request.enable_counterfactuals else []
-        resilience=max(0,1-risk*(1+.35*(1-integrity)))
+        decisions=AgentOrchestrator().run(context, simulation_id, request.scenario_name)
+        failed_agents={decision.agent for decision in decisions if decision.status == "failed"}
+        if "compound-event-detector" in failed_agents:
+            transfers=[]
+        if "resilience-planning-agent" in failed_agents:
+            transfers=[]
+        trust,evidence=evaluate_trust(request,simulation_id,states,transfers,risk,decisions,observed_at)
+        confidence=trust.recommendation_confidence
+        counterfactuals=[]
+        if "compound-event-detector" in failed_agents or "resilience-planning-agent" in failed_agents:
+            counterfactuals=[]
+        resilience=_resilience(risk,integrity)
         best=counterfactuals[0].intervention if counterfactuals else "no counterfactual evaluated"
         explanation=f"The regional twin estimates risk {risk:.2f} and resilience {resilience:.2f}. Telemetry integrity is {integrity:.2f}. The strongest simulated intervention is '{best}'. All actions are planning recommendations and require authorized human approval."
+        if failed_agents:
+            explanation += " One or more execution components failed safely; intervention output is constrained and authorized human review is required."
         simulation_counter.add(1,{"scenario":request.scenario_name})
         risk_histogram.record(risk,{"scenario":request.scenario_name})
         integrity_histogram.record(integrity,{"scenario":request.scenario_name})
         span.set_attributes({"geotwin.regional_risk.score":risk,"geotwin.resilience.score":resilience,"ai.decision.confidence":confidence,"security.telemetry.integrity":integrity})
-        return SimulationResponse(simulation_id=simulation_id,scenario_name=request.scenario_name,regional_risk_score=round(risk,3),resilience_score=round(resilience,3),affected_hospitals=states,transfer_plan=transfers,evidence=evidence,agent_decisions=decisions,counterfactuals=counterfactuals,explanation=explanation,trust=TrustRecord(evidence_completeness=round(completeness,3),telemetry_integrity=round(integrity,3),uncertainty=round(uncertainty,3),geographic_coverage=1.0,policy_compliance=policy,recommendation_confidence=round(confidence,3)))
+        response=SimulationResponse(simulation_id=simulation_id,scenario_name=request.scenario_name,regional_risk_score=round(risk,3),resilience_score=round(resilience,3),affected_hospitals=states,transfer_plan=transfers,evidence=evidence,agent_decisions=decisions,counterfactuals=counterfactuals,explanation=explanation,trust=trust,trace_id=trace_id,duration_ms=round((perf_counter()-simulation_started)*1000,3))
+        if request.enable_counterfactuals and not failed_agents:
+            from app.services.counterfactuals import default_counterfactual_results
+            response=response.model_copy(update={"counterfactuals":default_counterfactual_results(request,response)})
+        from app.services.simulation_store import store_simulation
+        store_simulation(request,response)
+        return response
