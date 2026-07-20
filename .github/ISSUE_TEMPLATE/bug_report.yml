@@ -1,0 +1,22 @@
+name: Bug report
+description: Report a reproducible defect in the synthetic research prototype.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not include secrets, PHI, real facility vulnerabilities, or other sensitive data. Report security issues privately through SECURITY.md."
+  - type: textarea
+    id: summary
+    attributes: {label: Summary, description: What happened and what did you expect?}
+    validations: {required: true}
+  - type: textarea
+    id: reproduction
+    attributes: {label: Reproduction, description: Include route, synthetic scenario, steps, and sanitized logs/trace ID.}
+    validations: {required: true}
+  - type: input
+    id: version
+    attributes: {label: Version/environment, description: Commit or app version and local/staging/production.}
+  - type: textarea
+    id: checks
+    attributes: {label: Checks run, description: Tests, browser, and workaround tried.}

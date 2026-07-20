@@ -1,0 +1,14 @@
+const layers = [
+    ['Evidence plane', 'Packaged synthetic hazards, hospital infrastructure, cyber events, missing data, and telemetry-integrity signals.'],
+    ['Digital-twin plane', 'Directed dependency and referral graph with deterministic capacity, demand, risk, resilience, and transfer calculations.'],
+    ['Agent plane', 'Three transparent rule-based agents plus a response-orchestrator record; no LLM tools or autonomous execution.'],
+    ['Counterfactual plane', 'Bounded request transformations rerun through the same evaluator and compared with the exact process-local baseline.'],
+    ['Trust plane', 'Versioned evidence factors, basic lineage, rule-based integrity checks, policy reasons, uncertainty, and human review.'],
+    ['Observability plane', 'OpenTelemetry traces, metrics, and structured logs exported optionally to SigNoz without blocking simulation.'],
+];
+
+const docsBase = 'https://github.com/harshapriyag123/agentic-healthcare-digital-twi/blob/main/docs';
+
+export function ArchitecturePage() {
+    return <div className="architecture-page"><header className="page-header"><div><span className="eyebrow">About the project</span><h1>GeoTwin Sentinel Architecture</h1><p>An agentic geospatial healthcare infrastructure digital twin for compound-disruption research, evidence-grounded recommendations, counterfactual comparison, and authorized human review.</p></div></header><div className="architecture-flow">{layers.map(([title, description], index) => <section className="panel" key={title}><span>{String(index + 1).padStart(2, '0')}</span><h2>{title}</h2><p>{description}</p></section>)}</div><section className="panel"><h2>How to read the application</h2><p>The Command Center runs a scenario and explains hospital state. Agent Activity exposes decision records and evidence dependencies. Counterfactuals compare model transformations without claiming causal effects. Trust & Evidence explains why confidence is constrained. A trace ID correlates backend execution in a configured SigNoz environment.</p><div className="button-row"><a className="button button--ghost" href={`${docsBase}/README.md`} target="_blank" rel="noreferrer">Documentation map</a><a className="button button--ghost" href={`${docsBase}/research/limitations.md`} target="_blank" rel="noreferrer">Research limitations</a><a className="button button--ghost" href={`${docsBase}/architecture/system-architecture.md`} target="_blank" rel="noreferrer">System diagrams</a></div></section><section className="panel safety-boundary"><h2>Safety and limitations</h2><p>Research decision-support prototype using synthetic data. Outputs are simulated estimates intended for authorized human review and are not clinical, cybersecurity, transfer, infrastructure-control, or emergency-response instructions. The model is simplified, has no real hospital integration, and provides neither cryptographic provenance nor validated causal intervention effects.</p></section></div>;
+}

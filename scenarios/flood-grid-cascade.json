@@ -1,5 +1,10 @@
 {
   "scenario_name": "flood-grid-cascade",
+  "display_name": "Flood Grid Cascade",
+  "category": "infrastructure",
+  "description": "Severe flooding disrupts the central power grid and forces regional capacity transfers.",
+  "tags": ["flood", "grid", "capacity"],
+  "severity": "high",
   "horizon_hours": 48,
   "demand_multiplier": 1.2,
   "hazard": {
