@@ -4,6 +4,10 @@ from app.models.domain import AgentDecision
 
 class DetectionAgent(Agent):
     name = "compound-event-detector"
+    display_name = "Compound Event Detector"
+    stage = "detection"
+    purpose = "Detect correlated cyber-physical pressure in the synthetic scenario."
+    evidence_ids = ["compound-hazard-pressure", "regional-risk"]
 
     def decide(self, context: dict) -> AgentDecision:
         hazard = context["hazard_pressure"]

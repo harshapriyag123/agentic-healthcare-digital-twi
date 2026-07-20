@@ -1,4 +1,4 @@
-from app.models.domain import CyberEvent,HazardInput,SimulationRequest
+from app.models.domain import CyberEvent, HazardInput, SimulationRequest
 from app.services.twin import run_simulation
 
 

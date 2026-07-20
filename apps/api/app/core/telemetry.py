@@ -14,6 +14,9 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from app.core.config import settings
 
 _configured = False
+_enabled = False
+_tracer_provider: TracerProvider | None = None
+_meter_provider: MeterProvider | None = None
 
 
 def _can_reach_otlp_endpoint(endpoint: str) -> bool:
@@ -36,33 +39,56 @@ def should_enable_telemetry(endpoint: str) -> bool:
 
 
 def configure_telemetry() -> None:
-    global _configured
+    global _configured, _enabled, _tracer_provider, _meter_provider
     if _configured:
         return
-    resource = Resource.create({
-        "service.name": settings.otel_service_name,
-        "deployment.environment": settings.app_env,
-        "service.namespace": "geotwin-sentinel",
-    })
-
-    endpoint = settings.otel_exporter_otlp_endpoint
-    if not should_enable_telemetry(endpoint):
-        logging.getLogger(__name__).info("Telemetry exporter disabled for endpoint '%s'; API will continue", endpoint)
+    if not settings.otel_enabled:
+        logging.getLogger(__name__).info("Telemetry export disabled by configuration; API will continue")
         _configured = True
         return
+    resource_attributes = {
+        "service.name": settings.otel_service_name,
+        "deployment.environment": settings.app_env,
+        "service.version": settings.app_version,
+        "service.namespace": "geotwin-sentinel",
+    }
+    for pair in settings.otel_resource_attributes.split(","):
+        if "=" in pair:
+            key, value = pair.split("=", 1)
+            if key.strip() and value.strip(): resource_attributes[key.strip()] = value.strip()
+    resource = Resource.create(resource_attributes)
 
+    endpoint = settings.otel_exporter_otlp_endpoint
     try:
+        headers = dict(pair.split("=", 1) for pair in settings.otel_exporter_otlp_headers.split(",") if "=" in pair)
         tracer_provider = TracerProvider(resource=resource)
         tracer_provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(
             endpoint=endpoint,
             insecure=settings.otel_exporter_otlp_insecure,
+            headers=headers,
         )))
         trace.set_tracer_provider(tracer_provider)
         reader = PeriodicExportingMetricReader(OTLPMetricExporter(
             endpoint=endpoint,
             insecure=settings.otel_exporter_otlp_insecure,
+            headers=headers,
         ))
-        metrics.set_meter_provider(MeterProvider(resource=resource, metric_readers=[reader]))
+        meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
+        metrics.set_meter_provider(meter_provider)
+        _tracer_provider = tracer_provider
+        _meter_provider = meter_provider
+        _enabled = True
     except Exception:
         logging.getLogger(__name__).exception("Telemetry exporter setup failed; API will continue")
     _configured = True
+
+
+def telemetry_status() -> dict[str, bool | str]:
+    return {"enabled": settings.otel_enabled, "configured": _configured, "exporter_active": _enabled, "service": settings.otel_service_name}
+
+
+def shutdown_telemetry() -> None:
+    for provider in (_meter_provider, _tracer_provider):
+        if provider is not None:
+            try: provider.shutdown()
+            except Exception: logging.getLogger(__name__).exception("Telemetry shutdown failed; process exit will continue")

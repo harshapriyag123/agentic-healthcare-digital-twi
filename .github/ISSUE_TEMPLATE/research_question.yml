@@ -1,0 +1,19 @@
+name: Research question
+description: Propose a testable research question or evaluation.
+title: "[Research]: "
+labels: [research]
+body:
+  - type: textarea
+    id: question
+    attributes: {label: Research question, description: State a bounded, falsifiable question.}
+    validations: {required: true}
+  - type: textarea
+    id: method
+    attributes: {label: Proposed method, description: Metrics, baselines, data, acceptance criteria, and limitations.}
+    validations: {required: true}
+  - type: textarea
+    id: ethics
+    attributes: {label: Ethics and safety, description: Confirm synthetic/approved data and identify human-review or study requirements.}
+  - type: markdown
+    attributes:
+      value: "Do not include patient information or claim completed validation without evidence."

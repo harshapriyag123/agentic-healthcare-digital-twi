@@ -4,6 +4,10 @@ from app.models.domain import AgentDecision
 
 class SecurityAgent(Agent):
     name = "telemetry-integrity-agent"
+    display_name = "Telemetry Integrity Agent"
+    stage = "security-assessment"
+    purpose = "Assess telemetry provenance and constrain recommendations when evidence is unreliable."
+    evidence_ids = ["telemetry-integrity", "missing-telemetry", "tampering-probability"]
 
     def decide(self, context: dict) -> AgentDecision:
         integrity = context["telemetry_integrity"]

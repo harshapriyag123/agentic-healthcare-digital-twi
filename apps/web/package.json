@@ -1,0 +1,40 @@
+{
+    "name": "geotwin-web",
+    "private": true,
+    "version": "0.1.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "preview": "vite preview",
+        "build": "vite build",
+        "lint": "eslint src --max-warnings=0",
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run"
+    },
+    "dependencies": {
+        "maplibre-gl": "^5.6.1",
+        "react": "^19.0.1",
+        "react-dom": "^19.0.1",
+        "react-map-gl": "^8.0.4",
+        "react-router-dom": "^7.7.1"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.32.0",
+        "@testing-library/jest-dom": "^6.6.4",
+        "@testing-library/react": "^16.3.0",
+        "@testing-library/user-event": "^14.6.1",
+        "@types/geojson": "^7946.0.16",
+        "@types/react": "^19.1.9",
+        "@types/react-dom": "^19.1.7",
+        "@vitejs/plugin-react": "^4.3.1",
+        "eslint": "^9.32.0",
+        "eslint-plugin-react-hooks": "^5.2.0",
+        "eslint-plugin-react-refresh": "^0.4.20",
+        "globals": "^16.3.0",
+        "jsdom": "^26.1.0",
+        "typescript": "^5.8.3",
+        "typescript-eslint": "^8.38.0",
+        "vite": "^5.4.10",
+        "vitest": "^3.2.4"
+    }
+}

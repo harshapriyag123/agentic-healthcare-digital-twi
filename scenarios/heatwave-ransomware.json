@@ -1,5 +1,10 @@
 {
   "scenario_name": "heatwave-ransomware",
+  "display_name": "Heatwave Ransomware",
+  "category": "cyber-physical",
+  "description": "Extreme heat drives demand while ransomware degrades a high-occupancy hospital.",
+  "tags": ["heatwave", "ransomware", "cyber"],
+  "severity": "critical",
   "horizon_hours": 24,
   "demand_multiplier": 1.35,
   "hazard": {

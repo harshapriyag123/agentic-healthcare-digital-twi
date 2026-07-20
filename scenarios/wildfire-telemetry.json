@@ -1,0 +1,28 @@
+{
+    "scenario_name": "wildfire-telemetry",
+    "display_name": "Wildfire + Telemetry Tampering",
+    "category": "trust",
+    "description": "Wildfire smoke and adversarial telemetry manipulation challenge evidence integrity and human review.",
+    "tags": [
+        "wildfire",
+        "telemetry",
+        "trust"
+    ],
+    "severity": "medium",
+    "horizon_hours": 18,
+    "demand_multiplier": 1.15,
+    "hazard": {
+        "heat_index": 108,
+        "flood_severity": 0.0,
+        "air_quality_index": 220,
+        "grid_outage_probability": 0.2
+    },
+    "cyber_event": {
+        "target_hospital_id": "HOSP-DFW-004",
+        "severity": 0.55,
+        "attack_type": "telemetry-tampering",
+        "telemetry_tampering": 0.75
+    },
+    "missing_telemetry_ratio": 0.35,
+    "enable_counterfactuals": true
+}

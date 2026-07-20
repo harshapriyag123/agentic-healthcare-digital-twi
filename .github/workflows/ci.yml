@@ -2,14 +2,60 @@ name: CI
 on:
   push:
   pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  test:
+  backend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install -e '.[dev]'
-      - run: ruff check .
+          cache: pip
+      - run: python -m pip install -e '.[dev]'
+      - run: ruff format --check apps/api tests
+      - run: ruff check apps/api tests
       - run: pytest -q
+        env:
+          APP_ENV: test
+          OTEL_ENABLED: 'false'
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test -- --reporter=dot
+      - run: npm run build
+        env:
+          VITE_APP_ENV: staging
+          VITE_API_BASE_URL: https://api-staging.example.invalid
+          VITE_APP_VERSION: ${{ github.sha }}
+      - run: '! grep -R "http://localhost:8000\|http://127.0.0.1:8000" dist'
+  security-and-container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/check_secrets.py
+      - run: python scripts/check_docs.py
+      - run: docker build --tag geotwin-sentinel:${{ github.sha }} .
+      - run: docker inspect geotwin-sentinel:${{ github.sha }} --format '{{.Config.User}}' | grep -Eq '10001|geotwin'
+      - run: docker run --detach --name geotwin-ci -p 8000:8000 -e APP_ENV=test -e OTEL_ENABLED=false -e TRUSTED_HOSTS=localhost,127.0.0.1 geotwin-sentinel:${{ github.sha }}
+      - run: for i in {1..30}; do curl --fail http://127.0.0.1:8000/api/v1/ready && exit 0; sleep 1; done; docker logs geotwin-ci; exit 1
+      - run: BACKEND_URL=http://127.0.0.1:8000 SMOKE_ALLOW_LOCALHOST=true python scripts/smoke_test.py --backend-only
