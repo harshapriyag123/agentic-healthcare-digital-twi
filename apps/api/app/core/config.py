@@ -38,13 +38,29 @@ class Settings(BaseSettings):
 
     @property
     def cors_origin_list(self) -> list[str]:
-        origins = [item.strip().rstrip("/") for item in self.cors_allowed_origins.split(",") if item.strip()]
+        origins = [
+            item.strip().rstrip("/")
+            for item in self.cors_allowed_origins.split(",")
+            if item.strip()
+        ]
         for origin in origins:
             parsed = urlparse(origin)
-            if origin == "*" or parsed.scheme not in {"http", "https"} or not parsed.netloc or parsed.path not in {"", "/"}:
-                raise ValueError("CORS_ALLOWED_ORIGINS must contain explicit HTTP(S) origins without paths")
-            if self.app_env in {"staging", "production"} and parsed.hostname in {"localhost", "127.0.0.1"}:
-                raise ValueError("Localhost CORS origins are not allowed outside local/test environments")
+            if (
+                origin == "*"
+                or parsed.scheme not in {"http", "https"}
+                or not parsed.netloc
+                or parsed.path not in {"", "/"}
+            ):
+                raise ValueError(
+                    "CORS_ALLOWED_ORIGINS must contain explicit HTTP(S) origins without paths"
+                )
+            if self.app_env in {"staging", "production"} and parsed.hostname in {
+                "localhost",
+                "127.0.0.1",
+            }:
+                raise ValueError(
+                    "Localhost CORS origins are not allowed outside local/test environments"
+                )
         if self.app_env in {"staging", "production"} and not origins:
             raise ValueError("CORS_ALLOWED_ORIGINS is required for staging and production")
         return origins
@@ -58,7 +74,11 @@ class Settings(BaseSettings):
 
     @property
     def public_metadata(self) -> dict[str, str]:
-        return {"environment": self.app_env, "version": self.app_version, "service": self.otel_service_name}
+        return {
+            "environment": self.app_env,
+            "version": self.app_version,
+            "service": self.otel_service_name,
+        }
 
 
 @lru_cache

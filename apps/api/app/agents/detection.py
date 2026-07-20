@@ -12,5 +12,10 @@ class DetectionAgent(Agent):
     def decide(self, context: dict) -> AgentDecision:
         hazard = context["hazard_pressure"]
         cyber = context["cyber_severity"]
-        compound = 1 - (1-hazard) * (1-cyber)
-        return AgentDecision(agent=self.name, action="escalate" if compound >= .55 else "observe", confidence=round(.7 + .25*compound, 3), explanation=f"Joint cyber-physical pressure is {compound:.2f}; correlated evaluation is required.")
+        compound = 1 - (1 - hazard) * (1 - cyber)
+        return AgentDecision(
+            agent=self.name,
+            action="escalate" if compound >= 0.55 else "observe",
+            confidence=round(0.7 + 0.25 * compound, 3),
+            explanation=f"Joint cyber-physical pressure is {compound:.2f}; correlated evaluation is required.",
+        )
