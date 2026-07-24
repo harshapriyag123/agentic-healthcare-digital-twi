@@ -1,11 +1,18 @@
 import logging
 from datetime import UTC, datetime
 from math import hypot
+from time import perf_counter
 from uuid import uuid4
 
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 
+from app.core.observability import (
+    counterfactual_duration,
+    counterfactual_evaluations,
+    counterfactual_failures,
+    scenario_type,
+)
 from app.models.domain import (
     CounterfactualExplorerResponse,
     CounterfactualOutcome,
@@ -569,9 +576,20 @@ def run_counterfactual_comparison(
             )
         outcomes = []
         for selection in request.interventions:
+            evaluation_started = perf_counter()
             definition = INTERVENTIONS[selection.intervention_id]
+            metric_dimensions = {
+                "intervention.type": definition.category,
+                "scenario.type": scenario_type(original_request.scenario_name),
+            }
             applicable, reason = _applicable(selection.intervention_id, original_request)
             if not applicable:
+                counterfactual_evaluations.add(
+                    1, {**metric_dimensions, "result.status": "failed"}
+                )
+                counterfactual_failures.add(
+                    1, {**metric_dimensions, "failure.type": "not_applicable"}
+                )
                 logger.warning(
                     "Intervention validation failed",
                     extra={
@@ -624,6 +642,12 @@ def run_counterfactual_comparison(
                         }
                     )
                     outcomes.append(outcome)
+                    counterfactual_evaluations.add(
+                        1, {**metric_dimensions, "result.status": "success"}
+                    )
+                    counterfactual_duration.record(
+                        (perf_counter() - evaluation_started) * 1000, metric_dimensions
+                    )
                     logger.info(
                         "Counterfactual evaluation completed",
                         extra={
@@ -636,6 +660,15 @@ def run_counterfactual_comparison(
                         },
                     )
                 except Exception as exc:
+                    counterfactual_evaluations.add(
+                        1, {**metric_dimensions, "result.status": "failed"}
+                    )
+                    counterfactual_failures.add(
+                        1, {**metric_dimensions, "failure.type": type(exc).__name__}
+                    )
+                    counterfactual_duration.record(
+                        (perf_counter() - evaluation_started) * 1000, metric_dimensions
+                    )
                     intervention_span.record_exception(exc)
                     intervention_span.set_status(
                         Status(StatusCode.ERROR, "Counterfactual intervention failed")

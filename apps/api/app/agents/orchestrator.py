@@ -1,6 +1,6 @@
 import logging
 from datetime import UTC, datetime
-from time import perf_counter
+from time import perf_counter, sleep
 
 from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
@@ -9,6 +9,15 @@ from app.agents.base import Agent
 from app.agents.detection import DetectionAgent
 from app.agents.planning import PlanningAgent
 from app.agents.security import SecurityAgent
+from app.core.observability import (
+    agent_duration,
+    agent_executions,
+    agent_failures,
+    agent_low_confidence,
+    confidence_band,
+    human_review_required,
+    scenario_type,
+)
 from app.models.domain import AgentDecision
 
 logger = logging.getLogger(__name__)
@@ -85,7 +94,16 @@ class AgentOrchestrator:
                     }
                 )
                 trace_id, span_id = _span_ids(span)
+                span.add_event("agent.started")
                 try:
+                    demo_fault = context.get("demo_fault", "none")
+                    if agent.name == "telemetry-integrity-agent":
+                        if demo_fault == "security-agent-delay":
+                            span.add_event("synthetic_demo.delay", {"delay.ms": 250})
+                            sleep(0.25)
+                        elif demo_fault == "security-agent-failure":
+                            span.add_event("synthetic_demo.failure")
+                            raise RuntimeError("Explicit synthetic demo security-agent failure")
                     decision = agent.decide(context)
                     duration_ms = round((perf_counter() - started) * 1000, 3)
                     human_review = decision.action in {
@@ -127,8 +145,31 @@ class AgentOrchestrator:
                             "agent.human_review_required": record.human_review_required,
                             "telemetry.integrity": context.get("telemetry_integrity", 0),
                             "regional.risk": context.get("regional_risk", 0),
+                            "agent.confidence_band": confidence_band(record.confidence),
+                            "agent.evidence_count": len(record.evidence_ids),
                         }
                     )
+                    span.add_event(
+                        "recommendation.produced",
+                        {"agent.action": record.action, "agent.status": status},
+                    )
+                    metric_dimensions = {
+                        "agent.name": agent.name,
+                        "result.status": status,
+                        "scenario.type": scenario_type(scenario_name),
+                    }
+                    agent_executions.add(1, metric_dimensions)
+                    agent_duration.record(duration_ms, metric_dimensions)
+                    if record.confidence < 0.4:
+                        agent_low_confidence.add(
+                            1, {"agent.name": agent.name, "scenario.type": scenario_type(scenario_name)}
+                        )
+                        span.add_event("confidence.reduced")
+                    if human_review:
+                        human_review_required.add(
+                            1, {"scenario.type": scenario_type(scenario_name), "source": "agent"}
+                        )
+                        span.add_event("human_review.triggered")
                     log_level = logging.WARNING if warning else logging.INFO
                     logger.log(
                         log_level,
@@ -160,6 +201,15 @@ class AgentOrchestrator:
                     span.set_attributes(
                         {"agent.status": "failed", "agent.human_review_required": True}
                     )
+                    span.add_event("agent.failed", {"error.type": type(exc).__name__})
+                    failure_dimensions = {
+                        "agent.name": agent.name,
+                        "failure.type": type(exc).__name__,
+                        "scenario.type": scenario_type(scenario_name),
+                    }
+                    agent_executions.add(1, {**failure_dimensions, "result.status": "failed"})
+                    agent_failures.add(1, failure_dimensions)
+                    agent_duration.record(duration_ms, failure_dimensions)
                     logger.exception(
                         "Agent execution failed",
                         extra={

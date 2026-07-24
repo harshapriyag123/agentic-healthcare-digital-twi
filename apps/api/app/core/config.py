@@ -9,6 +9,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_env: Literal["local", "test", "staging", "production"] = "local"
     app_version: str = "0.1.0"
+    commit_sha: str = "unknown"
+    build_timestamp: str = "unknown"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     otel_enabled: bool = True
     otel_service_name: str = "geotwin-api"
@@ -73,11 +75,17 @@ class Settings(BaseSettings):
         return hosts
 
     @property
-    def public_metadata(self) -> dict[str, str]:
+    def public_metadata(self) -> dict[str, str | bool]:
         return {
+            "application": "GeoTwin Sentinel",
             "environment": self.app_env,
             "version": self.app_version,
             "service": self.otel_service_name,
+            "commit_sha": self.commit_sha,
+            "build_timestamp": self.build_timestamp,
+            "opentelemetry_enabled": self.otel_enabled,
+            "signoz_export_configured": self.otel_enabled
+            and bool(self.otel_exporter_otlp_endpoint),
         }
 
 

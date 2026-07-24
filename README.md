@@ -69,6 +69,19 @@ The explorer reruns the same evaluator after bounded transformations such as net
 
 FastAPI requests, digital-twin execution, agents, trust evaluation, and counterfactual evaluation emit OpenTelemetry. The UI displays a simulation trace ID and can link to a configured read-only SigNoz dashboard. Export failure is fail-open: it should not block simulation, but it reduces auditability. [Observability guide](docs/architecture/observability.md) · [SigNoz setup](docs/guides/signoz-setup.md)
 
+## Why SigNoz is Essential
+
+SigNoz is the inspection layer for the agentic workflow, not a decorative final
+screenshot. A judge can open one returned trace ID and see the API request,
+`simulation.run`, facility impacts, the three real `agent.execute` spans, trust checks,
+and counterfactual work. Agent duration and status expose the slowest or failed component;
+correlated JSON logs explain integrity warnings and human-review triggers; bounded metrics
+compare scenario latency, failures, review counts, and telemetry-integrity incidents.
+This makes delayed recommendations and fallback behavior debuggable while keeping model
+confidence, evidence quality, policy compliance, and human approval distinct. SigNoz
+supports operational traceability; it does not prove that an AI recommendation is correct.
+See the [verified Query Builder workflow, dashboards, and alerts](docs/signoz-query-guide.md).
+
 ## Technology
 
 React 19, TypeScript, Vite, MapLibre GL, FastAPI, Pydantic, NetworkX, OpenTelemetry, pytest, Vitest, Ruff, Docker, Render, Vercel, and SigNoz.
@@ -115,6 +128,12 @@ curl --fail-with-body -X POST http://127.0.0.1:8000/api/v1/simulations/run \
 
 Copy the returned `simulation_id` to query `/api/v1/trust/{simulation_id}` or submit a counterfactual comparison. Tested examples are in the [API overview](docs/api/overview.md).
 
+With the API and a recording OTLP destination running, verify the full primary flow:
+
+```bash
+python scripts/verify_observability.py
+```
+
 ## Test and validate
 
 ```bash
@@ -127,7 +146,7 @@ npm test -- --run
 npm run build
 ```
 
-Deployment smoke tests and external-service requirements are documented in [testing](docs/guides/testing.md). CI also scans common secret patterns and validates a non-root container.
+Deployment smoke tests and external-service requirements are documented in [testing](docs/guides/testing.md). CI also scans common secret patterns and validates a non-root container. The [technical blog draft](docs/blog/observing-agentic-digital-twin-with-signoz.md), [submission copy](docs/hackathon-submission.md), and [submission checklist](docs/submission-checklist.md) are kept in the repository.
 
 ## Deployment
 
