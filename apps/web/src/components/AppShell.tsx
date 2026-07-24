@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 import { useSimulation } from '../SimulationContext';
-import { deploymentConfig } from '../deploymentConfig';
+import { deploymentConfig, deploymentConfigError } from '../deploymentConfig';
 
 const commandLinks = [
     ['Scenarios', 'scenario-configuration'],
@@ -44,6 +44,12 @@ export function AppShell() {
                 </nav>
             </aside>
             <div className="app-frame">
+                {deploymentConfigError && (
+                    <div className="deployment-error" role="alert">
+                        <strong>Deployment configuration error:</strong> {deploymentConfigError}
+                        {' '}Set the Vercel environment variable and redeploy.
+                    </div>
+                )}
                 <header className="topbar">
                     <div><strong>GeoTwin Sentinel</strong><span>Healthcare Infrastructure Resilience</span></div>
                     <div className="topbar__status">

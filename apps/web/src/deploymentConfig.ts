@@ -17,10 +17,31 @@ export function buildDeploymentConfig(values: Record<string, string | undefined>
     return { apiBaseUrl, appEnv: appEnv as PublicDeploymentConfig['appEnv'], appVersion: values.VITE_APP_VERSION || '0.1.0-dev', deploymentName: values.VITE_DEPLOYMENT_NAME || 'GeoTwin Sentinel', syntheticData: true };
 }
 
-export const deploymentConfig = buildDeploymentConfig({
+const runtimeValues = {
     ...(import.meta.env as Record<string, string | undefined>),
     VITE_APP_ENV: import.meta.env.VITE_APP_ENV || (import.meta.env.PROD ? 'production' : 'local'),
-});
+};
+
+function loadRuntimeConfig() {
+    try {
+        return { config: buildDeploymentConfig(runtimeValues), error: '' };
+    } catch (error) {
+        return {
+            config: {
+                apiBaseUrl: '',
+                appEnv: (import.meta.env.PROD ? 'production' : 'local') as PublicDeploymentConfig['appEnv'],
+                appVersion: import.meta.env.VITE_APP_VERSION || '0.1.0-dev',
+                deploymentName: import.meta.env.VITE_DEPLOYMENT_NAME || 'GeoTwin Sentinel',
+                syntheticData: true as const,
+            },
+            error: error instanceof Error ? error.message : 'Invalid public deployment configuration.',
+        };
+    }
+}
+
+const runtimeConfig = loadRuntimeConfig();
+export const deploymentConfig = runtimeConfig.config;
+export const deploymentConfigError = runtimeConfig.error;
 
 export function apiUrl(path: string) {
     if (!path.startsWith('/')) throw new Error('API path must begin with /.');

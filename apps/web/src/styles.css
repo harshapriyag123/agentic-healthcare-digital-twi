@@ -86,3 +86,9 @@ code { color: #a5f3fc; overflow-wrap: anywhere; }
 .agent-evidence-matrix>div { display:grid; grid-template-columns:repeat(auto-fit,minmax(235px,1fr)); gap:.7rem; }.agent-evidence-matrix button { display:grid; gap:.25rem; padding:.8rem; border:1px solid var(--border); border-radius:.6rem; background:#091625; color:var(--text); text-align:left; }.agent-evidence-matrix button[aria-pressed=true] { border-color:var(--accent); }.agent-evidence-matrix b { color:#fda4af; }.counterfactual-trust table { min-width:900px; }.map-marker--trust-suspected-tampering,.map-marker--trust-conflicting,.map-marker--trust-rejected { outline:4px double #f43f5e; }.map-marker--trust-missing,.map-marker--trust-stale,.map-marker--trust-degraded { outline:3px dashed #f59e0b; }
 @media(max-width:780px){.trust-two-column{grid-template-columns:1fr}.trust-factors article{grid-template-columns:1fr}.trust-factors dl{grid-template-columns:repeat(2,minmax(0,1fr))}.trust-map-section .map-panel{display:none}.trust-map-section>.panel::after{content:'The evidence inventory and hospital filters above provide the mobile trust-overlay equivalent.';display:block;margin-top:.5rem;color:var(--muted)}}
 @media print{.trust-persistent-disclaimer{position:static}.evidence-filters,.trust-map-section,.evidence-detail-backdrop{display:none!important}.trust-dashboard-page .panel{break-inside:avoid}}
+.deployment-error {
+    background: #7f1d1d;
+    color: #fff;
+    padding: .75rem 1rem;
+    border-bottom: 1px solid #f87171;
+}
