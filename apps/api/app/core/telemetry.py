@@ -155,7 +155,9 @@ def configure_telemetry() -> None:
             )
         )
         logging.getLogger().addHandler(
-            LoggingHandler(level=getattr(logging, settings.log_level), logger_provider=logger_provider)
+            LoggingHandler(
+                level=getattr(logging, settings.log_level), logger_provider=logger_provider
+            )
         )
         _tracer_provider = tracer_provider
         _meter_provider = meter_provider

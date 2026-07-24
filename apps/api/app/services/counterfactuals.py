@@ -584,9 +584,7 @@ def run_counterfactual_comparison(
             }
             applicable, reason = _applicable(selection.intervention_id, original_request)
             if not applicable:
-                counterfactual_evaluations.add(
-                    1, {**metric_dimensions, "result.status": "failed"}
-                )
+                counterfactual_evaluations.add(1, {**metric_dimensions, "result.status": "failed"})
                 counterfactual_failures.add(
                     1, {**metric_dimensions, "failure.type": "not_applicable"}
                 )

@@ -162,7 +162,11 @@ class AgentOrchestrator:
                     agent_duration.record(duration_ms, metric_dimensions)
                     if record.confidence < 0.4:
                         agent_low_confidence.add(
-                            1, {"agent.name": agent.name, "scenario.type": scenario_type(scenario_name)}
+                            1,
+                            {
+                                "agent.name": agent.name,
+                                "scenario.type": scenario_type(scenario_name),
+                            },
                         )
                         span.add_event("confidence.reduced")
                     if human_review:

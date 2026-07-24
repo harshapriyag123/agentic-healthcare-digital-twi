@@ -312,9 +312,7 @@ def run_simulation(request: SimulationRequest) -> SimulationResponse:
             )
             trust_score.record(confidence, dimensions)
             if integrity < 0.75:
-                telemetry_integrity_failures.add(
-                    1, {**dimensions, "integrity.state": "degraded"}
-                )
+                telemetry_integrity_failures.add(1, {**dimensions, "integrity.state": "degraded"})
             if trust.human_review_required:
                 human_review_required.add(1, dimensions)
             span.set_attributes(

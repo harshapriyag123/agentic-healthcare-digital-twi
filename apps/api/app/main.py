@@ -89,9 +89,7 @@ async def enforce_request_size(request: Request, call_next):
     response = await call_next(request)
     context = trace.get_current_span().get_span_context()
     if context.is_valid:
-        response.headers["Traceparent"] = (
-            f"00-{context.trace_id:032x}-{context.span_id:016x}-01"
-        )
+        response.headers["Traceparent"] = f"00-{context.trace_id:032x}-{context.span_id:016x}-01"
         response.headers["X-Trace-Id"] = f"{context.trace_id:032x}"
     return response
 
