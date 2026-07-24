@@ -43,3 +43,25 @@ def test_tampering_reduces_trust():
         )
     )
     assert tampered.trust.recommendation_confidence < clean.trust.recommendation_confidence
+
+
+def test_explanation_is_derived_from_completed_response():
+    result = run_simulation(request())
+    best = max(result.counterfactuals, key=lambda item: item.risk_reduction)
+    transfer_patients = sum(action.patients for action in result.transfer_plan)
+
+    assert result.explanation
+    assert f"risk {result.regional_risk_score:.2f}" in result.explanation
+    assert f"'{best.intervention}'" in result.explanation
+    if result.transfer_plan:
+        assert f"{transfer_patients} patients" in result.explanation
+    else:
+        assert "no transfers recommended" in result.explanation
+    assert "no counterfactual evaluated" not in result.explanation.lower()
+
+
+def test_explanation_reports_disabled_counterfactuals_dynamically():
+    result = run_simulation(request(enable_counterfactuals=False))
+
+    assert result.counterfactuals == []
+    assert "No counterfactual was evaluated for this run." in result.explanation

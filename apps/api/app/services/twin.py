@@ -189,6 +189,52 @@ def _resilience(risk: float, integrity: float) -> float:
     return max(0, 1 - risk * (1 + 0.35 * (1 - integrity)))
 
 
+def _build_explanation(
+    *,
+    risk: float,
+    resilience: float,
+    integrity: float,
+    states: list[HospitalState],
+    transfers: list[TransferAction],
+    counterfactuals: list,
+    failed_agents: set[str],
+) -> str:
+    critical_count = sum(state.status == FacilityStatus.CRITICAL for state in states)
+    degraded_count = sum(state.status == FacilityStatus.DEGRADED for state in states)
+    transfer_patients = sum(action.patients for action in transfers)
+
+    facility_summary = (
+        f"{critical_count} critical and {degraded_count} degraded facilities"
+        if critical_count or degraded_count
+        else "no critical or degraded facilities"
+    )
+    transfer_summary = (
+        f"{transfer_patients} patients across {len(transfers)} recommended transfers"
+        if transfers
+        else "no transfers recommended"
+    )
+    intervention_summary = "No counterfactual was evaluated for this run."
+    if counterfactuals:
+        best = max(counterfactuals, key=lambda item: item.risk_reduction)
+        intervention_summary = (
+            f"The strongest evaluated intervention is '{best.intervention}', "
+            f"with modeled risk reduction {best.risk_reduction:.2f}."
+        )
+
+    explanation = (
+        f"The regional twin estimates risk {risk:.2f} and resilience {resilience:.2f}, "
+        f"with telemetry integrity {integrity:.2f}. It identified {facility_summary} and "
+        f"{transfer_summary}. {intervention_summary} All actions are planning "
+        "recommendations and require authorized human approval."
+    )
+    if failed_agents:
+        explanation += (
+            " One or more execution components failed safely; intervention output is "
+            "constrained and authorized human review is required."
+        )
+    return explanation
+
+
 def run_simulation(request: SimulationRequest) -> SimulationResponse:
     simulation_started = perf_counter()
     simulation_id = str(uuid4())
@@ -240,10 +286,6 @@ def run_simulation(request: SimulationRequest) -> SimulationResponse:
         ):
             counterfactuals = []
         resilience = _resilience(risk, integrity)
-        best = counterfactuals[0].intervention if counterfactuals else "no counterfactual evaluated"
-        explanation = f"The regional twin estimates risk {risk:.2f} and resilience {resilience:.2f}. Telemetry integrity is {integrity:.2f}. The strongest simulated intervention is '{best}'. All actions are planning recommendations and require authorized human approval."
-        if failed_agents:
-            explanation += " One or more execution components failed safely; intervention output is constrained and authorized human review is required."
         simulation_counter.add(1, {"scenario": request.scenario_name})
         risk_histogram.record(risk, {"scenario": request.scenario_name})
         integrity_histogram.record(integrity, {"scenario": request.scenario_name})
@@ -265,7 +307,7 @@ def run_simulation(request: SimulationRequest) -> SimulationResponse:
             evidence=evidence,
             agent_decisions=decisions,
             counterfactuals=counterfactuals,
-            explanation=explanation,
+            explanation="",
             trust=trust,
             trace_id=trace_id,
             duration_ms=round((perf_counter() - simulation_started) * 1000, 3),
@@ -276,6 +318,19 @@ def run_simulation(request: SimulationRequest) -> SimulationResponse:
             response = response.model_copy(
                 update={"counterfactuals": default_counterfactual_results(request, response)}
             )
+        response = response.model_copy(
+            update={
+                "explanation": _build_explanation(
+                    risk=risk,
+                    resilience=resilience,
+                    integrity=integrity,
+                    states=states,
+                    transfers=transfers,
+                    counterfactuals=response.counterfactuals,
+                    failed_agents=failed_agents,
+                )
+            }
+        )
         from app.services.simulation_store import store_simulation
 
         store_simulation(request, response)
