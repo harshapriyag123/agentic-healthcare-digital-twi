@@ -3,9 +3,22 @@ from math import exp
 from time import perf_counter
 from uuid import uuid4
 
-from opentelemetry import metrics, trace
+from opentelemetry import trace
+from opentelemetry.trace import Status, StatusCode
 
 from app.agents.orchestrator import AgentOrchestrator
+from app.core.observability import (
+    active_simulations,
+    critical_hospitals,
+    degraded_hospitals,
+    human_review_required,
+    scenario_type,
+    simulation_duration,
+    simulation_failures,
+    simulation_runs,
+    telemetry_integrity_failures,
+    trust_score,
+)
 from app.models.domain import (
     FacilityStatus,
     HospitalState,
@@ -20,10 +33,6 @@ from app.services.integrity import assess_integrity
 from app.services.trust import evaluate_trust
 
 tracer = trace.get_tracer("geotwin.digital-twin")
-meter = metrics.get_meter("geotwin.digital-twin")
-simulation_counter = meter.create_counter("geotwin.simulations.total")
-risk_histogram = meter.create_histogram("geotwin.regional_risk.score")
-integrity_histogram = meter.create_histogram("geotwin.telemetry.integrity")
 GRAPH = build_infrastructure_graph(HOSPITALS)
 CENTRALITY = centrality_scores(GRAPH)
 
@@ -239,7 +248,9 @@ def run_simulation(request: SimulationRequest) -> SimulationResponse:
     simulation_started = perf_counter()
     simulation_id = str(uuid4())
     observed_at = datetime.now(UTC).isoformat()
-    with tracer.start_as_current_span("digital_twin.run") as span:
+    dimensions = {"scenario.type": scenario_type(request.scenario_name)}
+    active_simulations.add(1, dimensions)
+    with tracer.start_as_current_span("simulation.run") as span:
         span_context = span.get_span_context()
         trace_id = f"{span_context.trace_id:032x}" if span_context.is_valid else None
         span.set_attributes(
@@ -315,8 +326,21 @@ def run_simulation(request: SimulationRequest) -> SimulationResponse:
         if request.enable_counterfactuals and not failed_agents:
             from app.services.counterfactuals import default_counterfactual_results
 
+                response = response.model_copy(
+                    update={"counterfactuals": default_counterfactual_results(request, response)}
+                )
             response = response.model_copy(
-                update={"counterfactuals": default_counterfactual_results(request, response)}
+                update={
+                    "explanation": _build_explanation(
+                        risk=risk,
+                        resilience=resilience,
+                        integrity=integrity,
+                        states=states,
+                        transfers=transfers,
+                        counterfactuals=response.counterfactuals,
+                        failed_agents=failed_agents,
+                    )
+                }
             )
         response = response.model_copy(
             update={
@@ -333,5 +357,12 @@ def run_simulation(request: SimulationRequest) -> SimulationResponse:
         )
         from app.services.simulation_store import store_simulation
 
-        store_simulation(request, response)
-        return response
+            store_simulation(request, response)
+            return response
+        except Exception as exc:
+            simulation_failures.add(1, {**dimensions, "failure.type": type(exc).__name__})
+            span.record_exception(exc)
+            span.set_status(Status(StatusCode.ERROR, "Simulation failed"))
+            raise
+        finally:
+            active_simulations.add(-1, dimensions)

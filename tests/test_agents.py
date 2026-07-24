@@ -86,3 +86,17 @@ def test_failed_planning_agent_returns_no_unsafe_intervention(monkeypatch) -> No
     assert result.counterfactuals == []
     assert result.trust.policy_compliance is False
     assert "failed safely" in result.explanation
+
+
+def test_explicit_demo_security_failure_is_safe_and_disabled_by_default() -> None:
+    baseline_request = request()
+    assert baseline_request.demo_fault == "none"
+    result = run_simulation(
+        baseline_request.model_copy(update={"demo_fault": "security-agent-failure"})
+    )
+    security = next(
+        record for record in result.agent_decisions if record.agent == "telemetry-integrity-agent"
+    )
+    assert security.status == "failed"
+    assert security.human_review_required
+    assert result.trust.human_review_required

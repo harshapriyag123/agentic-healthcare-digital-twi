@@ -1,20 +1,21 @@
-import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
+from opentelemetry import trace
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from app.api.routes import health, observability_health, ready, router
 from app.core.config import settings
-from app.core.telemetry import configure_telemetry, shutdown_telemetry
-
-logging.basicConfig(
-    level=getattr(logging, settings.log_level),
-    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+from app.core.telemetry import (
+    configure_structured_logging,
+    configure_telemetry,
+    shutdown_telemetry,
 )
+
+configure_structured_logging()
 configure_telemetry()
 
 
@@ -67,7 +68,7 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Accept", "Content-Type", "Traceparent", "Tracestate"],
-    expose_headers=["Traceparent"],
+    expose_headers=["Traceparent", "X-Trace-Id"],
     max_age=600,
 )
 
@@ -85,7 +86,14 @@ async def enforce_request_size(request: Request, call_next):
             return JSONResponse(
                 status_code=400, content={"detail": "Invalid Content-Length header"}
             )
-    return await call_next(request)
+    response = await call_next(request)
+    context = trace.get_current_span().get_span_context()
+    if context.is_valid:
+        response.headers["Traceparent"] = (
+            f"00-{context.trace_id:032x}-{context.span_id:016x}-01"
+        )
+        response.headers["X-Trace-Id"] = f"{context.trace_id:032x}"
+    return response
 
 
 app.include_router(router)

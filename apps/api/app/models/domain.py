@@ -47,6 +47,7 @@ class SimulationRequest(BaseModel):
     cyber_event: CyberEvent
     missing_telemetry_ratio: float = Field(default=0, ge=0, le=0.9)
     enable_counterfactuals: bool = True
+    demo_fault: Literal["none", "security-agent-failure", "security-agent-delay"] = "none"
 
 
 class HospitalState(BaseModel):
