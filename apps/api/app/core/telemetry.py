@@ -1,10 +1,15 @@
+import json
 import logging
 import socket
+from datetime import UTC, datetime
 from urllib.parse import urlparse
 
 from opentelemetry import metrics, trace
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
@@ -17,6 +22,50 @@ _configured = False
 _enabled = False
 _tracer_provider: TracerProvider | None = None
 _meter_provider: MeterProvider | None = None
+_logger_provider: LoggerProvider | None = None
+
+
+class JsonFormatter(logging.Formatter):
+    """Emit safe structured stdout logs with automatic trace correlation."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        context = trace.get_current_span().get_span_context()
+        payload = {
+            "timestamp": datetime.now(UTC).isoformat(),
+            "severity": record.levelname,
+            "service.name": settings.otel_service_name,
+            "deployment.environment": settings.app_env,
+            "event.name": record.getMessage(),
+        }
+        if context.is_valid:
+            payload["trace_id"] = f"{context.trace_id:032x}"
+            payload["span_id"] = f"{context.span_id:016x}"
+        for key in (
+            "simulation_id",
+            "scenario_id",
+            "agent_name",
+            "agent_stage",
+            "agent_status",
+            "agent_action",
+            "counterfactual_name",
+            "status",
+            "error_code",
+        ):
+            value = getattr(record, key, None)
+            if value is not None:
+                payload[key] = value
+        if record.exc_info:
+            payload["exception.type"] = record.exc_info[0].__name__
+            payload["exception.stacktrace"] = self.formatException(record.exc_info)
+        return json.dumps(payload, default=str, separators=(",", ":"))
+
+
+def configure_structured_logging() -> None:
+    root = logging.getLogger()
+    handler = logging.StreamHandler()
+    handler.setFormatter(JsonFormatter())
+    root.handlers[:] = [handler]
+    root.setLevel(getattr(logging, settings.log_level))
 
 
 def _can_reach_otlp_endpoint(endpoint: str) -> bool:
@@ -39,7 +88,7 @@ def should_enable_telemetry(endpoint: str) -> bool:
 
 
 def configure_telemetry() -> None:
-    global _configured, _enabled, _tracer_provider, _meter_provider
+    global _configured, _enabled, _tracer_provider, _meter_provider, _logger_provider
     if _configured:
         return
     if not settings.otel_enabled:
@@ -62,6 +111,13 @@ def configure_telemetry() -> None:
     resource = Resource.create(resource_attributes)
 
     endpoint = settings.otel_exporter_otlp_endpoint
+    if not should_enable_telemetry(endpoint):
+        logging.getLogger(__name__).warning(
+            "Telemetry endpoint unavailable during startup; export disabled and API will continue",
+            extra={"error_code": "OTLP_ENDPOINT_UNAVAILABLE"},
+        )
+        _configured = True
+        return
     try:
         headers = dict(
             pair.split("=", 1)
@@ -88,8 +144,22 @@ def configure_telemetry() -> None:
         )
         meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
         metrics.set_meter_provider(meter_provider)
+        logger_provider = LoggerProvider(resource=resource)
+        logger_provider.add_log_record_processor(
+            BatchLogRecordProcessor(
+                OTLPLogExporter(
+                    endpoint=endpoint,
+                    insecure=settings.otel_exporter_otlp_insecure,
+                    headers=headers,
+                )
+            )
+        )
+        logging.getLogger().addHandler(
+            LoggingHandler(level=getattr(logging, settings.log_level), logger_provider=logger_provider)
+        )
         _tracer_provider = tracer_provider
         _meter_provider = meter_provider
+        _logger_provider = logger_provider
         _enabled = True
     except Exception:
         logging.getLogger(__name__).exception("Telemetry exporter setup failed; API will continue")
@@ -106,7 +176,7 @@ def telemetry_status() -> dict[str, bool | str]:
 
 
 def shutdown_telemetry() -> None:
-    for provider in (_meter_provider, _tracer_provider):
+    for provider in (_logger_provider, _meter_provider, _tracer_provider):
         if provider is not None:
             try:
                 provider.shutdown()

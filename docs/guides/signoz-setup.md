@@ -24,7 +24,15 @@ The `.invalid` endpoint is intentionally non-routable; use the values supplied b
 1. Check `/health/observability` for enabled/configured status without secrets.
 2. Run Wildfire + Telemetry Tampering and copy its 32-character trace ID.
 3. In SigNoz, filter service `geotwin-api`, exact trace ID, deployed environment, and scenario/simulation attributes.
-4. Inspect request → `digital_twin.run` → `agent.execute` → trust/counterfactual work where emitted.
-5. Inspect risk/integrity metrics and agent/trust structured logs. Attribute names are in [OTel conventions](../OTEL_SEMANTIC_CONVENTIONS.md).
+4. Inspect request → `simulation.run` → `agent.execute` → trust/counterfactual work where emitted.
+5. Inspect application metrics and agent/trust structured logs. Attribute names are in [OTel conventions](../OTEL_SEMANTIC_CONVENTIONS.md).
+
+The repository collector deliberately exports all three signals to its `debug` exporter,
+which proves local OTLP receipt without pretending to bundle SigNoz. For a local SigNoz
+instance, point the application directly at the instance's supported OTLP receiver or
+change the collector pipelines to the `otlp/signoz` exporter and provide
+`SIGNOZ_OTLP_ENDPOINT` and `SIGNOZ_INGESTION_KEY` through the shell/secret store. Never
+commit those values. The official self-hosted Docker deployment remains owned by the
+SigNoz repository.
 
 Export fails open. If a trace is delayed/missing, check endpoint/protocol (this app uses OTLP gRPC), TLS, ingestion-header syntax, collector/exporter logs, service/environment filters, sampling/retention, and clock. Do not claim a live SigNoz verification until the trace is actually found. SigNoz observes application execution; no judge analytics, fingerprints, or health/patient data should be added.

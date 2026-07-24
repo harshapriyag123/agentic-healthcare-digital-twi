@@ -17,9 +17,14 @@ def test_supported_production_configuration_and_public_metadata():
     )
     assert settings.cors_origin_list == ["https://demo.example"]
     assert settings.public_metadata == {
+        "application": "GeoTwin Sentinel",
         "environment": "production",
         "version": "release-1",
         "service": "geotwin-api",
+        "commit_sha": "unknown",
+        "build_timestamp": "unknown",
+        "opentelemetry_enabled": False,
+        "signoz_export_configured": False,
     }
 
 
