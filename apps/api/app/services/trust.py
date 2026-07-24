@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 
 from opentelemetry import trace
 
+from app.core.observability import evidence_missing, evidence_stale, scenario_type
 from app.models.domain import (
     AgentDecision,
     EvidenceItem,
@@ -320,6 +321,13 @@ def collect_evidence(
                 "trust_status": "collected",
             },
         )
+        dimensions = {"scenario.type": scenario_type(request.scenario_name)}
+        missing_total = sum(item.integrity_status == "missing" for item in records)
+        stale_total = sum(item.freshness_status == "stale" for item in records)
+        if missing_total:
+            evidence_missing.add(missing_total, dimensions)
+        if stale_total:
+            evidence_stale.add(stale_total, dimensions)
         return records
 
 

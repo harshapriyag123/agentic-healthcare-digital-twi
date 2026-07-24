@@ -3,9 +3,22 @@ from math import exp
 from time import perf_counter
 from uuid import uuid4
 
-from opentelemetry import metrics, trace
+from opentelemetry import trace
+from opentelemetry.trace import Status, StatusCode
 
 from app.agents.orchestrator import AgentOrchestrator
+from app.core.observability import (
+    active_simulations,
+    critical_hospitals,
+    degraded_hospitals,
+    human_review_required,
+    scenario_type,
+    simulation_duration,
+    simulation_failures,
+    simulation_runs,
+    telemetry_integrity_failures,
+    trust_score,
+)
 from app.models.domain import (
     FacilityStatus,
     HospitalState,
@@ -20,10 +33,6 @@ from app.services.integrity import assess_integrity
 from app.services.trust import evaluate_trust
 
 tracer = trace.get_tracer("geotwin.digital-twin")
-meter = metrics.get_meter("geotwin.digital-twin")
-simulation_counter = meter.create_counter("geotwin.simulations.total")
-risk_histogram = meter.create_histogram("geotwin.regional_risk.score")
-integrity_histogram = meter.create_histogram("geotwin.telemetry.integrity")
 GRAPH = build_infrastructure_graph(HOSPITALS)
 CENTRALITY = centrality_scores(GRAPH)
 
@@ -193,7 +202,9 @@ def run_simulation(request: SimulationRequest) -> SimulationResponse:
     simulation_started = perf_counter()
     simulation_id = str(uuid4())
     observed_at = datetime.now(UTC).isoformat()
-    with tracer.start_as_current_span("digital_twin.run") as span:
+    dimensions = {"scenario.type": scenario_type(request.scenario_name)}
+    active_simulations.add(1, dimensions)
+    with tracer.start_as_current_span("simulation.run") as span:
         span_context = span.get_span_context()
         trace_id = f"{span_context.trace_id:032x}" if span_context.is_valid else None
         span.set_attributes(
@@ -205,78 +216,119 @@ def run_simulation(request: SimulationRequest) -> SimulationResponse:
                 "ai.decision.human_review_required": True,
             }
         )
-        if request.cyber_event.target_hospital_id not in hospital_map():
-            raise ValueError("Unknown target hospital")
-        integrity, _ = assess_integrity(request)
-        states = _evaluate_states(request)
-        risk = _regional_risk(states)
-        transfers = _plan_transfers(states, request.cyber_event.target_hospital_id)
-        trust, evidence = evaluate_trust(
-            request, simulation_id, states, transfers, risk, observed_at=observed_at
-        )
-        confidence = trust.recommendation_confidence
-        context = {
-            "hazard_pressure": _hazard_pressure(request),
-            "cyber_severity": request.cyber_event.severity,
-            "telemetry_integrity": integrity,
-            "regional_risk": risk,
-            "transfer_count": len(transfers),
-            "trust_confidence": confidence,
-        }
-        decisions = AgentOrchestrator().run(context, simulation_id, request.scenario_name)
-        failed_agents = {decision.agent for decision in decisions if decision.status == "failed"}
-        if "compound-event-detector" in failed_agents:
-            transfers = []
-        if "resilience-planning-agent" in failed_agents:
-            transfers = []
-        trust, evidence = evaluate_trust(
-            request, simulation_id, states, transfers, risk, decisions, observed_at
-        )
-        confidence = trust.recommendation_confidence
-        counterfactuals = []
-        if (
-            "compound-event-detector" in failed_agents
-            or "resilience-planning-agent" in failed_agents
-        ):
-            counterfactuals = []
-        resilience = _resilience(risk, integrity)
-        best = counterfactuals[0].intervention if counterfactuals else "no counterfactual evaluated"
-        explanation = f"The regional twin estimates risk {risk:.2f} and resilience {resilience:.2f}. Telemetry integrity is {integrity:.2f}. The strongest simulated intervention is '{best}'. All actions are planning recommendations and require authorized human approval."
-        if failed_agents:
-            explanation += " One or more execution components failed safely; intervention output is constrained and authorized human review is required."
-        simulation_counter.add(1, {"scenario": request.scenario_name})
-        risk_histogram.record(risk, {"scenario": request.scenario_name})
-        integrity_histogram.record(integrity, {"scenario": request.scenario_name})
-        span.set_attributes(
-            {
-                "geotwin.regional_risk.score": risk,
-                "geotwin.resilience.score": resilience,
-                "ai.decision.confidence": confidence,
-                "security.telemetry.integrity": integrity,
-            }
-        )
-        response = SimulationResponse(
-            simulation_id=simulation_id,
-            scenario_name=request.scenario_name,
-            regional_risk_score=round(risk, 3),
-            resilience_score=round(resilience, 3),
-            affected_hospitals=states,
-            transfer_plan=transfers,
-            evidence=evidence,
-            agent_decisions=decisions,
-            counterfactuals=counterfactuals,
-            explanation=explanation,
-            trust=trust,
-            trace_id=trace_id,
-            duration_ms=round((perf_counter() - simulation_started) * 1000, 3),
-        )
-        if request.enable_counterfactuals and not failed_agents:
-            from app.services.counterfactuals import default_counterfactual_results
-
-            response = response.model_copy(
-                update={"counterfactuals": default_counterfactual_results(request, response)}
+        try:
+            if request.cyber_event.target_hospital_id not in hospital_map():
+                raise ValueError("Unknown target hospital")
+            with tracer.start_as_current_span("telemetry_integrity.evaluate"):
+                integrity, _ = assess_integrity(request)
+            with tracer.start_as_current_span("hospital_impact.calculate"):
+                states = _evaluate_states(request)
+            risk = _regional_risk(states)
+            with tracer.start_as_current_span("transfer_plan.calculate"):
+                transfers = _plan_transfers(states, request.cyber_event.target_hospital_id)
+            trust, evidence = evaluate_trust(
+                request, simulation_id, states, transfers, risk, observed_at=observed_at
             )
-        from app.services.simulation_store import store_simulation
+            confidence = trust.recommendation_confidence
+            context = {
+                "hazard_pressure": _hazard_pressure(request),
+                "cyber_severity": request.cyber_event.severity,
+                "telemetry_integrity": integrity,
+                "regional_risk": risk,
+                "transfer_count": len(transfers),
+                "trust_confidence": confidence,
+                "demo_fault": request.demo_fault,
+            }
+            with tracer.start_as_current_span("agent_orchestration.run"):
+                decisions = AgentOrchestrator().run(context, simulation_id, request.scenario_name)
+            failed_agents = {
+                decision.agent for decision in decisions if decision.status == "failed"
+            }
+            if {
+                "compound-event-detector",
+                "resilience-planning-agent",
+            } & failed_agents:
+                transfers = []
+            trust, evidence = evaluate_trust(
+                request, simulation_id, states, transfers, risk, decisions, observed_at
+            )
+            confidence = trust.recommendation_confidence
+            counterfactuals = []
+            resilience = _resilience(risk, integrity)
+            best = (
+                counterfactuals[0].intervention
+                if counterfactuals
+                else "no counterfactual evaluated"
+            )
+            explanation = (
+                f"The regional twin estimates risk {risk:.2f} and resilience "
+                f"{resilience:.2f}. Telemetry integrity is {integrity:.2f}. "
+                f"The strongest simulated intervention is '{best}'. All actions are "
+                "planning recommendations and require authorized human approval."
+            )
+            if failed_agents:
+                explanation += (
+                    " One or more execution components failed safely; intervention "
+                    "output is constrained and authorized human review is required."
+                )
+            simulation_runs.add(1, {**dimensions, "result.status": "success"})
+            duration_ms = round((perf_counter() - simulation_started) * 1000, 3)
+            simulation_duration.record(duration_ms, dimensions)
+            critical_hospitals.record(
+                sum(state.status == FacilityStatus.CRITICAL for state in states), dimensions
+            )
+            degraded_hospitals.record(
+                sum(state.status == FacilityStatus.DEGRADED for state in states), dimensions
+            )
+            trust_score.record(confidence, dimensions)
+            if integrity < 0.75:
+                telemetry_integrity_failures.add(
+                    1, {**dimensions, "integrity.state": "degraded"}
+                )
+            if trust.human_review_required:
+                human_review_required.add(1, dimensions)
+            span.set_attributes(
+                {
+                    "geotwin.regional_risk.score": risk,
+                    "geotwin.resilience.score": resilience,
+                    "ai.decision.confidence": confidence,
+                    "security.telemetry.integrity": integrity,
+                    "hospital.count": len(states),
+                    "hospital.critical_count": sum(
+                        state.status == FacilityStatus.CRITICAL for state in states
+                    ),
+                    "trust.human_review_required": trust.human_review_required,
+                }
+            )
+            response = SimulationResponse(
+                simulation_id=simulation_id,
+                scenario_name=request.scenario_name,
+                regional_risk_score=round(risk, 3),
+                resilience_score=round(resilience, 3),
+                affected_hospitals=states,
+                transfer_plan=transfers,
+                evidence=evidence,
+                agent_decisions=decisions,
+                counterfactuals=counterfactuals,
+                explanation=explanation,
+                trust=trust,
+                trace_id=trace_id,
+                duration_ms=duration_ms,
+            )
+            if request.enable_counterfactuals and not failed_agents:
+                from app.services.counterfactuals import default_counterfactual_results
 
-        store_simulation(request, response)
-        return response
+                response = response.model_copy(
+                    update={"counterfactuals": default_counterfactual_results(request, response)}
+                )
+            from app.services.simulation_store import store_simulation
+
+            store_simulation(request, response)
+            return response
+        except Exception as exc:
+            simulation_failures.add(1, {**dimensions, "failure.type": type(exc).__name__})
+            span.record_exception(exc)
+            span.set_status(Status(StatusCode.ERROR, "Simulation failed"))
+            raise
+        finally:
+            active_simulations.add(-1, dimensions)

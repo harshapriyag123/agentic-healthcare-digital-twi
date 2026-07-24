@@ -24,7 +24,13 @@ def dependency_pressure(graph: nx.DiGraph, facility_id: str, failed_nodes: set[s
 
 
 def centrality_scores(graph: nx.DiGraph) -> dict[str, float]:
-    raw = nx.pagerank(graph, alpha=0.85)
+    # Weighted in-degree captures infrastructure/referral dependence without
+    # NetworkX's optional NumPy/SciPy PageRank backend. The model only needs a
+    # stable relative criticality score, not iterative web-ranking semantics.
+    raw = {
+        node: sum(float(data.get("weight", 1)) for _, _, data in graph.in_edges(node, data=True))
+        for node in graph
+    }
     hospital_scores = {node: score for node, score in raw.items() if str(node).startswith("HOSP-")}
     max_score = max(hospital_scores.values(), default=1)
     return {node: score / max_score for node, score in hospital_scores.items()}
