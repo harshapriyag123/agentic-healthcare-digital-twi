@@ -4,7 +4,6 @@ export function buildDeploymentConfig(values: Record<string, string | undefined>
     const appEnv = values.VITE_APP_ENV || 'local';
     if (!['local', 'test', 'staging', 'production'].includes(appEnv)) throw new Error(`Unsupported VITE_APP_ENV: ${appEnv}`);
     const rawApi = (values.VITE_API_BASE_URL || '').trim();
-    if (!rawApi && ['staging', 'production'].includes(appEnv)) throw new Error('VITE_API_BASE_URL is required for staging and production builds.');
     let apiBaseUrl = '';
     if (rawApi) {
         let parsed: URL;

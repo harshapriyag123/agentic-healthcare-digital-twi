@@ -89,3 +89,18 @@ def test_container_uses_platform_port_nonroot_and_packages_catalogs():
     assert "USER 10001:10001" in dockerfile
     assert "COPY --chown=geotwin:geotwin scenarios ./scenarios" in dockerfile
     assert "--reload" not in dockerfile
+
+
+def test_vercel_deploys_api_before_spa_fallback():
+    import json
+
+    configuration = json.loads(open("vercel.json", encoding="utf-8").read())
+    assert "api/index.py" in configuration["functions"]
+    assert configuration["rewrites"][0] == {
+        "source": "/api/(.*)",
+        "destination": "/api/index.py",
+    }
+    assert configuration["rewrites"][-1]["destination"] == "/index.html"
+    entrypoint = open("api/index.py", encoding="utf-8").read()
+    assert "from app.main import app" in entrypoint
+    assert '"OTEL_ENABLED", "false"' in entrypoint
