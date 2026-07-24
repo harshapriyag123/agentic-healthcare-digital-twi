@@ -17,7 +17,10 @@ export function buildDeploymentConfig(values: Record<string, string | undefined>
     return { apiBaseUrl, appEnv: appEnv as PublicDeploymentConfig['appEnv'], appVersion: values.VITE_APP_VERSION || '0.1.0-dev', deploymentName: values.VITE_DEPLOYMENT_NAME || 'GeoTwin Sentinel', syntheticData: true };
 }
 
-export const deploymentConfig = buildDeploymentConfig(import.meta.env as Record<string, string | undefined>);
+export const deploymentConfig = buildDeploymentConfig({
+    ...(import.meta.env as Record<string, string | undefined>),
+    VITE_APP_ENV: import.meta.env.VITE_APP_ENV || (import.meta.env.PROD ? 'production' : 'local'),
+});
 
 export function apiUrl(path: string) {
     if (!path.startsWith('/')) throw new Error('API path must begin with /.');

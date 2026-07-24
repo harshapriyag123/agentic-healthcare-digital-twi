@@ -3,12 +3,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 import { api } from './api';
 import type { CounterfactualExplorerResponse, CounterfactualRunRequest, InterventionDefinition } from './counterfactualTypes';
-import type { AgentMapFocus, CompletedRun, Health, Hospital, RequestState, Scenario, SimulationRequest } from './types';
+import type { AgentMapFocus, CompletedRun, Health, Hospital, ObservabilityHealth, RequestState, Scenario, SimulationRequest } from './types';
 
 type SimulationContextValue = {
     scenarios: Scenario[];
     hospitals: Hospital[];
     health: Health | null;
+    observabilityHealth: ObservabilityHealth | null;
     catalogState: RequestState;
     catalogError: string;
     selectedScenario: Scenario | null;
@@ -48,6 +49,7 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
     const [scenarios, setScenarios] = useState<Scenario[]>([]);
     const [hospitals, setHospitals] = useState<Hospital[]>([]);
     const [health, setHealth] = useState<Health | null>(null);
+    const [observabilityHealth, setObservabilityHealth] = useState<ObservabilityHealth | null>(null);
     const [catalogState, setCatalogState] = useState<RequestState>('loading');
     const [catalogError, setCatalogError] = useState('');
     const [selectedScenario, setSelectedScenarioState] = useState<Scenario | null>(null);
@@ -69,11 +71,13 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
     const loadCatalog = useCallback(async () => {
         setCatalogState('loading');
         setCatalogError('');
-        const [scenarioResult, hospitalResult, healthResult, interventionResult] = await Promise.allSettled([
-            api.scenarios(), api.hospitals(), api.health(), api.interventions(),
+        const [scenarioResult, hospitalResult, healthResult, observabilityResult, interventionResult] = await Promise.allSettled([
+            api.scenarios(), api.hospitals(), api.health(), api.observabilityHealth(), api.interventions(),
         ]);
         if (healthResult.status === 'fulfilled') setHealth(healthResult.value);
         else setHealth(null);
+        if (observabilityResult.status === 'fulfilled') setObservabilityHealth(observabilityResult.value);
+        else setObservabilityHealth(null);
         if (interventionResult.status === 'fulfilled') { setInterventionDefinitions(interventionResult.value); setCounterfactualCatalogError(''); }
         else { setInterventionDefinitions([]); setCounterfactualCatalogError(message(interventionResult.reason)); }
         if (scenarioResult.status === 'rejected' || hospitalResult.status === 'rejected') {
@@ -154,13 +158,13 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
     }, [counterfactualState]);
 
     const value = useMemo(() => ({
-        scenarios, hospitals, health, catalogState, catalogError, selectedScenario, configuration,
+        scenarios, hospitals, health, observabilityHealth, catalogState, catalogError, selectedScenario, configuration,
         runState, runError, activeRun, runs, selectedHospitalId, setSelectedHospitalId, selectedAgentId, setSelectedAgentId,
         agentMapFocus, setAgentMapFocus, setSelectedScenario, setConfiguration,
         interventionDefinitions, counterfactualCatalogError, counterfactualState, counterfactualError,
         comparisons, selectedInterventionId, setSelectedInterventionId, runCounterfactuals,
         resetConfiguration, runSimulation, retryCatalog: loadCatalog,
-    }), [scenarios, hospitals, health, catalogState, catalogError, selectedScenario, configuration,
+    }), [scenarios, hospitals, health, observabilityHealth, catalogState, catalogError, selectedScenario, configuration,
         runState, runError, activeRun, runs, selectedHospitalId, selectedAgentId, agentMapFocus,
         interventionDefinitions, counterfactualCatalogError, counterfactualState, counterfactualError,
         comparisons, selectedInterventionId, setSelectedScenario, resetConfiguration, runSimulation, runCounterfactuals, loadCatalog]);

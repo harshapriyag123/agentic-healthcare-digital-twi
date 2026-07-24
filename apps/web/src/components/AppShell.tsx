@@ -11,7 +11,7 @@ const commandLinks = [
 
 export function AppShell() {
     const [collapsed, setCollapsed] = useState(() => window.localStorage.getItem('geotwin.sidebarCollapsed') === 'true');
-    const { health, selectedScenario, scenarios, setSelectedScenario, runSimulation, runState } = useSimulation();
+    const { health, observabilityHealth, selectedScenario, scenarios, setSelectedScenario, runSimulation, runState } = useSimulation();
     const navigate = useNavigate();
 
     const toggle = () => setCollapsed((current) => {
@@ -48,7 +48,7 @@ export function AppShell() {
                     <div><strong>GeoTwin Sentinel</strong><span>Healthcare Infrastructure Resilience</span></div>
                     <div className="topbar__status">
                         <span className={`connection ${health?.status === 'ok' ? 'connection--ok' : 'connection--down'}`}>Backend: {health?.status === 'ok' ? 'Healthy' : 'Unavailable'}</span>
-                        <span>OTel: Runtime status not exposed</span>
+                        <span>OTel: {observabilityHealth?.exporter_active ? 'Exporting' : observabilityHealth?.enabled ? 'Exporter unavailable' : observabilityHealth ? 'Disabled' : 'Unavailable'}</span>
                         <span>Scenario: {selectedScenario?.name ?? 'None'}</span>
                         <button type="button" className="button button--primary" onClick={() => void runDemo()} disabled={runState === 'loading' || scenarios.length === 0}>Run Demo</button>
                     </div>

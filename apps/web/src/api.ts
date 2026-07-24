@@ -1,4 +1,4 @@
-import type { Health, Hospital, Scenario, SimulationRequest, SimulationResult } from './types';
+import type { Health, Hospital, ObservabilityHealth, Scenario, SimulationRequest, SimulationResult } from './types';
 import type { CounterfactualExplorerResponse, CounterfactualRunRequest, InterventionDefinition } from './counterfactualTypes';
 import type { TrustDashboardResponse } from './trustTypes';
 import { apiUrl } from './deploymentConfig';
@@ -36,6 +36,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
     health: () => requestJson<Health>('/api/v1/health'),
+    observabilityHealth: () => requestJson<ObservabilityHealth>('/api/v1/health/observability'),
     hospitals: () => requestJson<Hospital[]>('/api/v1/hospitals'),
     scenarios: () => requestJson<Scenario[]>('/api/v1/scenarios'),
     interventions: () => requestJson<InterventionDefinition[]>('/api/v1/counterfactuals/interventions'),

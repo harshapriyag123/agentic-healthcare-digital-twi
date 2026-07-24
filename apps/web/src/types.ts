@@ -124,6 +124,14 @@ export type SimulationResult = {
 };
 
 export type Health = { status: string; service: string };
+export type ObservabilityHealth = {
+    status: string;
+    enabled: boolean;
+    configured: boolean;
+    exporter_active: boolean;
+    service: string;
+    required_for_readiness: boolean;
+};
 export type RequestState = 'idle' | 'loading' | 'success' | 'error';
 
 export type CompletedRun = {

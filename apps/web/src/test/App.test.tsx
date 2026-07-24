@@ -16,6 +16,7 @@ function installFetch(simulation: () => Promise<Response> = () => json(result())
     const mock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>((input) => {
         const path = String(input);
         if (path.endsWith('/health')) return json({ status: 'ok', service: 'geotwin-api' });
+        if (path.endsWith('/health/observability')) return json({ status: 'ok', enabled: true, configured: true, exporter_active: true, service: 'geotwin-api', required_for_readiness: false });
         if (path.endsWith('/hospitals')) return json(hospitals);
         if (path.endsWith('/scenarios')) return json(scenarios);
         if (path.endsWith('/counterfactuals/interventions')) return json(interventionDefinitions);
