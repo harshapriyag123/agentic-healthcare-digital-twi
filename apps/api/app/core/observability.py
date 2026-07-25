@@ -26,6 +26,8 @@ degraded_hospitals = meter.create_histogram("degraded_hospitals")
 telemetry_integrity_failures = meter.create_counter("telemetry_integrity_failures_total")
 evidence_missing = meter.create_counter("evidence_missing_total")
 evidence_stale = meter.create_counter("evidence_stale_total")
+api_request_duration = meter.create_histogram("api_request_duration_ms", unit="ms")
+api_errors = meter.create_counter("api_errors_total")
 
 
 def scenario_type(name: str) -> str:

@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from time import perf_counter
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +10,7 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from app.api.routes import health, observability_health, ready, router
 from app.core.config import settings
+from app.core.observability import api_errors, api_request_duration
 from app.core.telemetry import (
     configure_structured_logging,
     configure_telemetry,
@@ -17,6 +19,7 @@ from app.core.telemetry import (
 
 configure_structured_logging()
 configure_telemetry()
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -75,23 +78,67 @@ app.add_middleware(
 
 @app.middleware("http")
 async def enforce_request_size(request: Request, call_next):
+    started = perf_counter()
+    metric_attributes = {
+        "http.request.method": request.method,
+        "deployment.environment": settings.app_env,
+    }
+    logger.info(
+        "API request started",
+        extra={"event_name": "api.request.started", "status": "running"},
+    )
     length = request.headers.get("content-length")
     if length:
         try:
             if int(length) > settings.max_request_body_bytes:
-                return JSONResponse(
+                response = JSONResponse(
                     status_code=413, content={"detail": "Request body exceeds the configured limit"}
                 )
+                api_errors.add(1, {**metric_attributes, "http.response.status_class": "4xx"})
+                return response
         except ValueError:
-            return JSONResponse(
+            response = JSONResponse(
                 status_code=400, content={"detail": "Invalid Content-Length header"}
             )
-    response = await call_next(request)
-    context = trace.get_current_span().get_span_context()
-    if context.is_valid:
-        response.headers["Traceparent"] = f"00-{context.trace_id:032x}-{context.span_id:016x}-01"
-        response.headers["X-Trace-Id"] = f"{context.trace_id:032x}"
-    return response
+            api_errors.add(1, {**metric_attributes, "http.response.status_class": "4xx"})
+            return response
+    try:
+        response = await call_next(request)
+        status_class = f"{response.status_code // 100}xx"
+        if response.status_code >= 400:
+            api_errors.add(
+                1, {**metric_attributes, "http.response.status_class": status_class}
+            )
+        context = trace.get_current_span().get_span_context()
+        if context.is_valid:
+            response.headers["Traceparent"] = (
+                f"00-{context.trace_id:032x}-{context.span_id:016x}-01"
+            )
+            response.headers["X-Trace-Id"] = f"{context.trace_id:032x}"
+        logger.info(
+            "API response completed",
+            extra={
+                "event_name": "api.response.completed",
+                "status": status_class,
+            },
+        )
+        return response
+    except Exception:
+        api_errors.add(1, {**metric_attributes, "http.response.status_class": "5xx"})
+        logger.exception(
+            "API request failed",
+            extra={
+                "event_name": "api.request.failed",
+                "status": "failed",
+                "error_code": "UNHANDLED_API_ERROR",
+            },
+        )
+        raise
+    finally:
+        api_request_duration.record(
+            (perf_counter() - started) * 1000,
+            metric_attributes,
+        )
 
 
 app.include_router(router)
