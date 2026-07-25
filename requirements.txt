@@ -1,0 +1,3 @@
+# Install only the GeoTwin backend and its pyproject dependencies.
+# Streamlit Community Cloud provides Streamlit itself.
+-e .
