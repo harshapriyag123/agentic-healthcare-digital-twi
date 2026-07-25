@@ -12,8 +12,8 @@ apps/api/app/agents/security.py
 apps/api/app/api/__init__.py
 apps/api/app/api/routes.py
 apps/api/app/core/__init__.py
-apps/api/app/core/observability.py
 apps/api/app/core/config.py
+apps/api/app/core/observability.py
 apps/api/app/core/telemetry.py
 apps/api/app/models/__init__.py
 apps/api/app/models/domain.py
