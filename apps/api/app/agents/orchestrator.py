@@ -214,16 +214,23 @@ class AgentOrchestrator:
                     agent_executions.add(1, {**failure_dimensions, "result.status": "failed"})
                     agent_failures.add(1, failure_dimensions)
                     agent_duration.record(duration_ms, failure_dimensions)
-                    logger.exception(
-                        "Agent execution failed",
-                        extra={
-                            "simulation_id": simulation_id,
-                            "agent_name": agent.name,
-                            "agent_stage": stage,
-                            "agent_action": "defer-to-human-review",
-                            "agent_status": "failed",
-                        },
-                    )
+                    failure_log_fields = {
+                        "simulation_id": simulation_id,
+                        "agent_name": agent.name,
+                        "agent_stage": stage,
+                        "agent_action": "defer-to-human-review",
+                        "agent_status": "failed",
+                    }
+                    if demo_fault == "security-agent-failure":
+                        logger.warning(
+                            "Expected synthetic demo agent failure",
+                            extra=failure_log_fields,
+                        )
+                    else:
+                        logger.exception(
+                            "Agent execution failed",
+                            extra=failure_log_fields,
+                        )
                     records.append(
                         AgentDecision(
                             agent=agent.name,

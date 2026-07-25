@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import streamlit as st
 from app.models.domain import CounterfactualRunRequest, InterventionSelection
 from app.services.catalog import hospital_map
@@ -15,6 +17,10 @@ SAFETY_STATEMENT = (
     "not clinical, transfer, cybersecurity, infrastructure-control, or emergency-response "
     "instructions."
 )
+
+# The Streamlit UI presents policy warnings and controlled demo failures directly.
+# Keep hosted console logs focused on unexpected application errors.
+logging.getLogger("app").setLevel(logging.ERROR)
 
 
 def _status_icon(status: str) -> str:
