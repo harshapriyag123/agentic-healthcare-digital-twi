@@ -107,9 +107,7 @@ async def enforce_request_size(request: Request, call_next):
         response = await call_next(request)
         status_class = f"{response.status_code // 100}xx"
         if response.status_code >= 400:
-            api_errors.add(
-                1, {**metric_attributes, "http.response.status_class": status_class}
-            )
+            api_errors.add(1, {**metric_attributes, "http.response.status_class": status_class})
         context = trace.get_current_span().get_span_context()
         if context.is_valid:
             response.headers["Traceparent"] = (
