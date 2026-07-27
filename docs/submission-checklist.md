@@ -12,4 +12,7 @@ be truthfully automated.
 - [ ] **Manual:** record/upload video, publish/submit blog, paste submission fields
 - [ ] **Automated before tag:** backend tests, Ruff, frontend lint/typecheck/tests/build,
   Docker build, scenario smoke, docs check, secret scan
+- [x] **Automated locally (2026-07-26):** 47 backend tests, 59 frontend tests, Ruff,
+  ESLint, TypeScript, Vite build, backend smoke, docs check, and secret-pattern scan
+- [ ] **Blocked locally:** Docker image/Compose runtime (Docker Engine not running)
 - [ ] **Manual:** rehearse the three-minute path and verify safety/limitations are visible

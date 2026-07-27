@@ -35,7 +35,8 @@ class JsonFormatter(logging.Formatter):
             "severity": record.levelname,
             "service.name": settings.otel_service_name,
             "deployment.environment": settings.app_env,
-            "event.name": record.getMessage(),
+            "event.name": getattr(record, "event_name", record.getMessage()),
+            "body": record.getMessage(),
         }
         if context.is_valid:
             payload["trace_id"] = f"{context.trace_id:032x}"
@@ -48,6 +49,13 @@ class JsonFormatter(logging.Formatter):
             "agent_status",
             "agent_action",
             "counterfactual_name",
+            "comparison_id",
+            "intervention_id",
+            "counterfactual_status",
+            "evidence_count",
+            "trust_score",
+            "trust_status",
+            "human_review_required",
             "status",
             "error_code",
         ):
@@ -60,9 +68,20 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload, default=str, separators=(",", ":"))
 
 
+class EventNameFilter(logging.Filter):
+    """Give stdout and OTLP logs the same stable event-name attribute."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        event_name = getattr(record, "event_name", record.getMessage())
+        record.event_name = event_name
+        record.__dict__["event.name"] = event_name
+        return True
+
+
 def configure_structured_logging() -> None:
     root = logging.getLogger()
     handler = logging.StreamHandler()
+    handler.addFilter(EventNameFilter())
     handler.setFormatter(JsonFormatter())
     root.handlers[:] = [handler]
     root.setLevel(getattr(logging, settings.log_level))
@@ -154,11 +173,11 @@ def configure_telemetry() -> None:
                 )
             )
         )
-        logging.getLogger().addHandler(
-            LoggingHandler(
-                level=getattr(logging, settings.log_level), logger_provider=logger_provider
-            )
+        otlp_handler = LoggingHandler(
+            level=getattr(logging, settings.log_level), logger_provider=logger_provider
         )
+        otlp_handler.addFilter(EventNameFilter())
+        logging.getLogger().addHandler(otlp_handler)
         _tracer_provider = tracer_provider
         _meter_provider = meter_provider
         _logger_provider = logger_provider

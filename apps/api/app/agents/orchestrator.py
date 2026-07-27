@@ -76,6 +76,7 @@ class AgentOrchestrator:
             logger.info(
                 "Agent execution started",
                 extra={
+                    "event_name": "agent.started",
                     "simulation_id": simulation_id,
                     "agent_name": agent.name,
                     "agent_stage": stage,
@@ -179,6 +180,7 @@ class AgentOrchestrator:
                         log_level,
                         "Agent execution completed",
                         extra={
+                            "event_name": "agent.completed",
                             "simulation_id": simulation_id,
                             "agent_name": agent.name,
                             "agent_stage": stage,
@@ -190,6 +192,7 @@ class AgentOrchestrator:
                         logger.warning(
                             "Human review requested",
                             extra={
+                                "event_name": "human_review.triggered",
                                 "simulation_id": simulation_id,
                                 "agent_name": agent.name,
                                 "agent_stage": stage,
@@ -215,6 +218,7 @@ class AgentOrchestrator:
                     agent_failures.add(1, failure_dimensions)
                     agent_duration.record(duration_ms, failure_dimensions)
                     failure_log_fields = {
+                        "event_name": "agent.failed",
                         "simulation_id": simulation_id,
                         "agent_name": agent.name,
                         "agent_stage": stage,

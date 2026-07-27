@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime
 from math import exp
 from time import perf_counter
@@ -33,6 +34,7 @@ from app.services.integrity import assess_integrity
 from app.services.trust import evaluate_trust
 
 tracer = trace.get_tracer("geotwin.digital-twin")
+logger = logging.getLogger(__name__)
 GRAPH = build_infrastructure_graph(HOSPITALS)
 CENTRALITY = centrality_scores(GRAPH)
 
@@ -262,6 +264,15 @@ def run_simulation(request: SimulationRequest) -> SimulationResponse:
                 "ai.decision.human_review_required": True,
             }
         )
+        logger.info(
+            "Simulation started",
+            extra={
+                "event_name": "simulation.started",
+                "simulation_id": simulation_id,
+                "scenario_id": request.scenario_name,
+                "status": "running",
+            },
+        )
         try:
             if request.cyber_event.target_hospital_id not in hospital_map():
                 raise ValueError("Unknown target hospital")
@@ -269,6 +280,15 @@ def run_simulation(request: SimulationRequest) -> SimulationResponse:
                 integrity, _ = assess_integrity(request)
             with tracer.start_as_current_span("hospital_impact.calculate"):
                 states = _evaluate_states(request)
+            logger.info(
+                "Hospital impact calculated",
+                extra={
+                    "event_name": "hospital_impact.calculated",
+                    "simulation_id": simulation_id,
+                    "scenario_id": request.scenario_name,
+                    "status": "completed",
+                },
+            )
             risk = _regional_risk(states)
             with tracer.start_as_current_span("transfer_plan.calculate"):
                 transfers = _plan_transfers(states, request.cyber_event.target_hospital_id)
@@ -365,11 +385,30 @@ def run_simulation(request: SimulationRequest) -> SimulationResponse:
             from app.services.simulation_store import store_simulation
 
             store_simulation(request, response)
+            logger.info(
+                "Simulation response completed",
+                extra={
+                    "event_name": "simulation.response.completed",
+                    "simulation_id": simulation_id,
+                    "scenario_id": request.scenario_name,
+                    "status": "success",
+                },
+            )
             return response
         except Exception as exc:
             simulation_failures.add(1, {**dimensions, "failure.type": type(exc).__name__})
             span.record_exception(exc)
             span.set_status(Status(StatusCode.ERROR, "Simulation failed"))
+            logger.exception(
+                "Simulation failed",
+                extra={
+                    "event_name": "simulation.failed",
+                    "simulation_id": simulation_id,
+                    "scenario_id": request.scenario_name,
+                    "status": "failed",
+                    "error_code": "SIMULATION_FAILED",
+                },
+            )
             raise
         finally:
             active_simulations.add(-1, dimensions)

@@ -18,7 +18,7 @@ range containing the run.
 | Slow simulations | `name = 'simulation.run'` | Table; `p95(duration_nano)` |
 | Security/integrity agent warnings | `name = 'agent.execute' AND agent.id = 'telemetry-integrity-agent' AND agent.status != 'completed'` | List |
 | Human review | `trust.human_review_required = true` | List |
-| Integrity failures | `name = 'telemetry_integrity.evaluate' AND security.telemetry.integrity < 0.75` | List |
+| Integrity failures | `name = 'simulation.run' AND security.telemetry.integrity < 0.75` | List |
 | Counterfactual latency | `name LIKE 'counterfactual.%'` | Table; `p95(duration_nano)`, group by `name` |
 | Errors in 15 minutes | `service.name = 'geotwin-api' AND status_code = 2` | List, time range Last 15 minutes |
 | P95 simulation duration | `name = 'simulation.run'` | Time Series; `p95(duration_nano)` |
@@ -35,9 +35,13 @@ Use **Logs → Explorer**, time range **Last 15 minutes**:
 |---|---|
 | Logs for a trace | `trace_id = '<trace-id>'` |
 | Failed agent logs | `service.name = 'geotwin-api' AND agent_status = 'failed'` |
-| Human-review events | `service.name = 'geotwin-api' AND event.name = 'Human review requested'` |
-| Missing evidence | `service.name = 'geotwin-api' AND event.name LIKE '%evidence%' AND severity IN ('WARNING', 'ERROR')` |
-| Integrity warning | `service.name = 'geotwin-api' AND event.name = 'Trust evaluation requires human review'` |
+| Human-review events | `service.name = 'geotwin-api' AND event.name = 'human_review.triggered'` |
+| Missing evidence | `service.name = 'geotwin-api' AND event.name = 'evidence.collected' AND evidence_count < 1` |
+| Integrity warning | `service.name = 'geotwin-api' AND event.name = 'trust.review_required'` |
+
+The stable `event.name` is separate from the human-readable log body. Confirm each
+attribute with autocomplete after the first run; the OTLP logging handler and JSON stdout
+formatter both receive the same identifier.
 
 Open a log row and choose its trace-context action to move to the corresponding trace.
 

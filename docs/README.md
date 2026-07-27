@@ -9,3 +9,6 @@ GeoTwin Sentinel is a synthetic-data research decision-support prototype. Start 
 | Researcher | [Research positioning](research/research-positioning.md) → [Evaluation](research/evaluation-framework.md) → [Threat model](research/threat-model.md) |
 
 Public demo, recording, screenshot, and public SigNoz links are pending manual publication. Do not interpret their absence as a hidden deployment.
+
+The evidence-backed status of the latest local audit is in the
+[final submission-readiness report](final-audit-report.md).

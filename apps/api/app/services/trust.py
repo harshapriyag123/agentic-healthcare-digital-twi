@@ -316,6 +316,7 @@ def collect_evidence(
         logger.info(
             "Evidence collected",
             extra={
+                "event_name": "evidence.collected",
                 "simulation_id": simulation_id,
                 "evidence_count": len(records),
                 "trust_status": "collected",
@@ -343,7 +344,11 @@ def evaluate_trust(
     timestamp = observed_at or datetime.now(UTC).isoformat()
     logger.info(
         "Trust evaluation started",
-        extra={"simulation_id": simulation_id, "trust_status": "running"},
+        extra={
+            "event_name": "trust.started",
+            "simulation_id": simulation_id,
+            "trust_status": "running",
+        },
     )
     with tracer.start_as_current_span("trust.evaluate") as span:
         try:
@@ -558,6 +563,7 @@ def evaluate_trust(
                     logger.warning(
                         "Policy check failed",
                         extra={
+                            "event_name": "policy.failed",
                             "simulation_id": simulation_id,
                             "trust_status": "policy-failed",
                             "policy_id": policy.policy_id,
@@ -689,6 +695,7 @@ def evaluate_trust(
                 logger.warning(
                     "Human review required",
                     extra={
+                        "event_name": "trust.review_required",
                         "simulation_id": simulation_id,
                         "trust_score": trust.trust_score,
                         "trust_status": "review-required",
@@ -698,6 +705,7 @@ def evaluate_trust(
             logger.info(
                 "Trust evaluation completed",
                 extra={
+                    "event_name": "trust.completed",
                     "simulation_id": simulation_id,
                     "trust_score": trust.trust_score,
                     "trust_status": "completed",
@@ -709,6 +717,7 @@ def evaluate_trust(
             logger.exception(
                 "Trust evaluation failed",
                 extra={
+                    "event_name": "trust.failed",
                     "simulation_id": simulation_id,
                     "trust_status": "failed",
                     "human_review_required": True,

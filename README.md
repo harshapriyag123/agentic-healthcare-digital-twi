@@ -11,7 +11,7 @@
 
 An observable, agentic geospatial digital twin for exploring healthcare infrastructure resilience under compound climate, infrastructure, cyber, and telemetry disruptions. GeoTwin Sentinel models a synthetic regional hospital network, exposes evidence-linked agent recommendations, compares bounded counterfactual interventions, and emits traces, metrics, and logs for audit in SigNoz.
 
-> **Safety boundary:** Research decision-support prototype using synthetic data. Outputs are simulated estimates intended for authorized human review and are not clinical, cybersecurity, transfer, infrastructure-control, or emergency-response instructions.
+> **Safety boundary:** GeoTwin Sentinel is a research decision-support prototype using synthetic data. Its outputs are simulated estimates intended for authorized human review and are not clinical, transfer, cybersecurity, infrastructure-control, or emergency-response instructions.
 
 **Live demo:** Pending public deployment verification · **Demo video:** Pending recording · [Three-minute script](docs/demo/demo-script.md) · [Documentation map](docs/README.md) · [Limitations](docs/research/limitations.md)
 

@@ -563,6 +563,7 @@ def run_counterfactual_comparison(
         logger.info(
             "Counterfactual comparison started",
             extra={
+                "event_name": "counterfactual.started",
                 "simulation_id": request.simulation_id,
                 "comparison_id": comparison_id,
                 "intervention_id": "multiple",
@@ -591,6 +592,7 @@ def run_counterfactual_comparison(
                 logger.warning(
                     "Intervention validation failed",
                     extra={
+                        "event_name": "counterfactual.validation_failed",
                         "simulation_id": request.simulation_id,
                         "comparison_id": comparison_id,
                         "intervention_id": selection.intervention_id,
@@ -649,6 +651,7 @@ def run_counterfactual_comparison(
                     logger.info(
                         "Counterfactual evaluation completed",
                         extra={
+                            "event_name": "counterfactual.completed",
                             "simulation_id": request.simulation_id,
                             "comparison_id": comparison_id,
                             "intervention_id": definition.id,
@@ -684,6 +687,7 @@ def run_counterfactual_comparison(
                     logger.exception(
                         "Counterfactual comparison failed",
                         extra={
+                            "event_name": "counterfactual.failed",
                             "simulation_id": request.simulation_id,
                             "comparison_id": comparison_id,
                             "intervention_id": definition.id,
@@ -705,6 +709,7 @@ def run_counterfactual_comparison(
         logger.info(
             "Intervention ranking completed",
             extra={
+                "event_name": "counterfactual.ranking_completed",
                 "simulation_id": request.simulation_id,
                 "comparison_id": comparison_id,
                 "intervention_id": ranking[0].intervention_id if ranking else "none",

@@ -14,7 +14,9 @@ taken, and why a human-review rule became visible.
 
 ## Project context
 
-GeoTwin Sentinel is a research decision-support prototype using synthetic data. A React
+GeoTwin Sentinel is a research decision-support prototype using synthetic data. Its
+outputs are simulated estimates intended for authorized human review and are not clinical,
+transfer, cybersecurity, infrastructure-control, or emergency-response instructions. A React
 command center submits one of three compound-disruption scenarios to a FastAPI service.
 The service evaluates a five-hospital directed infrastructure graph, runs three
 deterministic agents, calculates a versioned trust record, and compares counterfactual
@@ -143,12 +145,24 @@ fail-open contract and makes local tests deterministic.
 
 ## What was confusing and what changed
 
-Two other issues surfaced. First, the project declared NumPy and SciPy only because
+Three other issues surfaced. The structured log calls already supplied stable identifiers
+such as `agent.started`, but the stdout formatter replaced `event.name` with the prose
+message. A query copied from the guide could therefore miss the event even though the log
+was present. I added a shared logging filter so both the JSON formatter and OTLP logging
+handler receive the same stable `event.name`, while `body` remains readable. An in-memory
+test now locks that correlation contract.
+
+Second, the documentation checker used `Path.read_text()` without an encoding. It passed
+on UTF-8 Linux CI but crashed under the Windows code page when it reached punctuation in
+the blog. Explicit UTF-8 reads made the submission audit reproducible across both
+environments.
+
+Third, the project declared NumPy and SciPy only because
 NetworkX PageRank selected its SciPy backend. On Python 3.14, the old NumPy `<2` pin forced
 a source build. I replaced PageRank with deterministic weighted in-degree criticality,
 which is the actual concept the model needs, and removed the unused scientific stack.
 
-Second, the original simulation exposed broad spans but only three custom metrics.
+Finally, the original simulation exposed broad spans but only three custom metrics.
 Agent execution was visible in records yet incomplete as an operational time series. The
 new bounded instruments and agent span events close that gap without adding hundreds of
 tiny spans.

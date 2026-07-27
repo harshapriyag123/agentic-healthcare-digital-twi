@@ -30,9 +30,30 @@ The `.invalid` endpoint is intentionally non-routable; use the values supplied b
 The repository collector deliberately exports all three signals to its `debug` exporter,
 which proves local OTLP receipt without pretending to bundle SigNoz. For a local SigNoz
 instance, point the application directly at the instance's supported OTLP receiver or
-change the collector pipelines to the `otlp/signoz` exporter and provide
-`SIGNOZ_OTLP_ENDPOINT` and `SIGNOZ_INGESTION_KEY` through the shell/secret store. Never
-commit those values. The official self-hosted Docker deployment remains owned by the
-SigNoz repository.
+copy the collector config to an ignored local file, add an `otlp/signoz` exporter, and
+select it in all three pipelines:
+
+```yaml
+exporters:
+  otlp/signoz:
+    endpoint: ${env:SIGNOZ_OTLP_ENDPOINT}
+    headers:
+      signoz-ingestion-key: ${env:SIGNOZ_INGESTION_KEY}
+    tls:
+      insecure: false
+service:
+  pipelines:
+    traces:
+      exporters: [otlp/signoz]
+    metrics:
+      exporters: [otlp/signoz]
+    logs:
+      exporters: [otlp/signoz]
+```
+
+Merge those pipeline entries with the committed receivers and processors; the snippet is
+not a standalone collector configuration. SigNoz Cloud requires the ingestion header,
+whereas self-hosted/community SigNoz does not. Never commit credential values. The
+official self-hosted Docker deployment remains owned by the SigNoz repository.
 
 Export fails open. If a trace is delayed/missing, check endpoint/protocol (this app uses OTLP gRPC), TLS, ingestion-header syntax, collector/exporter logs, service/environment filters, sampling/retention, and clock. Do not claim a live SigNoz verification until the trace is actually found. SigNoz observes application execution; no judge analytics, fingerprints, or health/patient data should be added.

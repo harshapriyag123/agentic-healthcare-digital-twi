@@ -8,9 +8,15 @@ from pathlib import Path
 from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parents[1]
-MARKDOWN = sorted(path for path in ROOT.rglob("*.md") if not any(part in {".git", ".venv", "node_modules"} for part in path.parts))
+MARKDOWN = sorted(
+    path
+    for path in ROOT.rglob("*.md")
+    if not any(part in {".git", ".venv", "node_modules"} for part in path.parts)
+)
 LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
-ENV_NAME = re.compile(r"`((?:APP|OTEL|VITE)_[A-Z0-9_]+|LOG_LEVEL|CORS_ALLOWED_ORIGINS|TRUSTED_HOSTS|MAX_REQUEST_BODY_BYTES)`")
+ENV_NAME = re.compile(
+    r"`((?:APP|OTEL|VITE)_[A-Z0-9_]+|LOG_LEVEL|CORS_ALLOWED_ORIGINS|TRUSTED_HOSTS|MAX_REQUEST_BODY_BYTES)`"
+)
 
 
 def relative_target(source: Path, raw: str) -> Path | None:
@@ -21,10 +27,14 @@ def relative_target(source: Path, raw: str) -> Path | None:
 
 
 def documented_environment_names() -> set[str]:
-    examples = [ROOT / ".env.example", ROOT / "apps/api/.env.example", ROOT / "apps/web/.env.example"]
+    examples = [
+        ROOT / ".env.example",
+        ROOT / "apps/api/.env.example",
+        ROOT / "apps/web/.env.example",
+    ]
     names: set[str] = set()
     for path in examples:
-        for line in path.read_text().splitlines():
+        for line in path.read_text(encoding="utf-8").splitlines():
             if line and not line.startswith("#") and "=" in line:
                 names.add(line.split("=", 1)[0])
     return names
@@ -33,24 +43,27 @@ def documented_environment_names() -> set[str]:
 def main() -> int:
     failures: list[str] = []
     for source in MARKDOWN:
-        text = source.read_text()
+        text = source.read_text(encoding="utf-8")
         for raw in LINK.findall(text):
             target = relative_target(source, raw)
             if target is not None and not target.exists():
                 failures.append(f"{source.relative_to(ROOT)}: broken link {raw}")
 
     known_env = documented_environment_names()
-    public_docs = "\n".join(path.read_text() for path in [ROOT / "README.md", *sorted((ROOT / "docs").rglob("*.md"))])
+    public_docs = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in [ROOT / "README.md", *sorted((ROOT / "docs").rglob("*.md"))]
+    )
     for name in sorted(set(ENV_NAME.findall(public_docs)) - known_env):
         failures.append(f"environment variable documented but absent from examples: {name}")
 
     required = [
-        "Research decision-support prototype using synthetic data",
+        "GeoTwin Sentinel is a research decision-support prototype using synthetic data",
         "authorized human review",
         "not clinical",
     ]
     for phrase in required:
-        if phrase not in (ROOT / "README.md").read_text():
+        if phrase not in (ROOT / "README.md").read_text(encoding="utf-8"):
             failures.append(f"README missing safety phrase: {phrase}")
 
     if failures:
@@ -58,7 +71,9 @@ def main() -> int:
         for failure in failures:
             print(f"- {failure}")
         return 1
-    print(f"Documentation validation passed for {len(MARKDOWN)} Markdown files and {len(known_env)} environment variables.")
+    print(
+        f"Documentation validation passed for {len(MARKDOWN)} Markdown files and {len(known_env)} environment variables."
+    )
     return 0
 
 

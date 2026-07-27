@@ -13,12 +13,6 @@ processors:
 exporters:
   debug:
     verbosity: detailed
-  otlp/signoz:
-    endpoint: ${env:SIGNOZ_OTLP_ENDPOINT}
-    headers:
-      signoz-ingestion-key: ${env:SIGNOZ_INGESTION_KEY}
-    tls:
-      insecure: false
 extensions:
   health_check:
     endpoint: 0.0.0.0:13133

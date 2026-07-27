@@ -35,8 +35,9 @@ app = FastAPI(
     summary="Synthetic healthcare infrastructure resilience simulation API",
     description=(
         "Agentic geospatial digital twin for compound climate, infrastructure, cyber, and telemetry-disruption research. "
-        "Research decision-support prototype using synthetic data. Outputs are simulated estimates intended for authorized "
-        "human review and are not clinical, cybersecurity, transfer, infrastructure-control, or emergency-response instructions."
+        "GeoTwin Sentinel is a research decision-support prototype using synthetic data. Its outputs are simulated estimates "
+        "intended for authorized human review and are not clinical, transfer, cybersecurity, infrastructure-control, or "
+        "emergency-response instructions."
     ),
     license_info={"name": "Apache License 2.0", "identifier": "Apache-2.0"},
     openapi_tags=[
