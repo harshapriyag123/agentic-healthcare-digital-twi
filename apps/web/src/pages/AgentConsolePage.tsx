@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
-import { agentLabel, agentMapFocus, agentMetrics, buildSigNozTraceLink, orderedAgents } from '../agentUtils';
+import { agentLabel, agentMapFocus, agentMetrics, orderedAgents } from '../agentUtils';
 import { AgentDetailPanel, AgentErrorPanel, AgentExecutionGraph, AgentSummaryMetrics, AgentTimeline, ExpectedWorkflowSkeleton, PlannedAgentsRoadmap } from '../components/AgentConsole';
+import { EmbeddedTraceDashboard } from '../components/EmbeddedTraceDashboard';
 import { useSimulation } from '../SimulationContext';
 import type { AgentDecision } from '../types';
 
@@ -15,7 +16,6 @@ export function AgentConsolePage() {
     const selected = records.find((record) => (record.agent_id ?? record.agent) === context.selectedAgentId) ?? records[0] ?? null;
     const metrics = agentMetrics(records);
     const configuredSigNozUrl = import.meta.env.VITE_SIGNOZ_DASHBOARD_URL as string | undefined;
-    const traceLink = buildSigNozTraceLink(configuredSigNozUrl, run?.result.trace_id);
 
     useEffect(() => {
         if (selected && !context.selectedAgentId) context.setSelectedAgentId(selected.agent_id ?? selected.agent);
@@ -38,7 +38,7 @@ export function AgentConsolePage() {
         <AgentSummaryMetrics records={records} />
         <AgentExecutionGraph records={records} selectedId={selected?.agent_id ?? selected?.agent ?? null} onSelect={select} />
         <div className="agent-console-grid"><AgentTimeline records={records} selectedId={selected?.agent_id ?? selected?.agent ?? null} onSelect={select} /><AgentDetailPanel record={selected} run={run} /></div>
-        <section className="panel agent-observability" id="agent-observability"><div className="section-heading"><div><span className="eyebrow">OpenTelemetry correlation</span><h2>Execution Observability</h2></div></div><dl className="metric-list"><div><dt>Simulation ID</dt><dd><code>{run.result.simulation_id}</code></dd></div><div><dt>Trace ID</dt><dd><code>{run.result.trace_id ?? 'Not exposed'}</code></dd></div><div><dt>Backend simulation duration</dt><dd>{run.result.duration_ms === null || run.result.duration_ms === undefined ? 'Not exposed by backend' : `${run.result.duration_ms.toFixed(3)} ms`}</dd></div><div><dt>Slowest agent span</dt><dd>{metrics.slowest ? `${agentLabel(metrics.slowest)} · ${metrics.slowest.duration_ms?.toFixed(3)} ms` : 'Not exposed by backend'}</dd></div><div><dt>Failed execution records</dt><dd>{metrics.failed}</dd></div><div><dt>Records with span IDs</dt><dd>{records.filter((record) => record.span_id).length} of {records.length}</dd></div></dl>{traceLink ? <a className="button button--primary" href={traceLink} target="_blank" rel="noreferrer">Open correlated trace in SigNoz</a> : <button className="button button--ghost" type="button" disabled>{!configuredSigNozUrl ? 'SigNoz dashboard URL not configured' : !run.result.trace_id ? 'Trace ID not exposed by backend' : 'SigNoz trace URL is invalid'}</button>}{!run.result.trace_id && <p className="muted">Trace correlation is recorded by the backend but is not currently exposed through the API for this run.</p>}</section>
+        <section className="panel agent-observability" id="agent-observability"><div className="section-heading"><div><span className="eyebrow">OpenTelemetry correlation</span><h2>Execution Observability</h2></div></div><dl className="metric-list"><div><dt>Simulation ID</dt><dd><code>{run.result.simulation_id}</code></dd></div><div><dt>Trace ID</dt><dd><code>{run.result.trace_id ?? 'Not exposed'}</code></dd></div><div><dt>Backend simulation duration</dt><dd>{run.result.duration_ms === null || run.result.duration_ms === undefined ? 'Not exposed by backend' : `${run.result.duration_ms.toFixed(3)} ms`}</dd></div><div><dt>Slowest agent span</dt><dd>{metrics.slowest ? `${agentLabel(metrics.slowest)} · ${metrics.slowest.duration_ms?.toFixed(3)} ms` : 'Not exposed by backend'}</dd></div><div><dt>Failed execution records</dt><dd>{metrics.failed}</dd></div><div><dt>Records with span IDs</dt><dd>{records.filter((record) => record.span_id).length} of {records.length}</dd></div></dl>{configuredSigNozUrl ? <EmbeddedTraceDashboard simulationId={run.result.simulation_id} traceId={run.result.trace_id} stages={records.map((record) => ({ name: agentLabel(record), status: record.status, durationMs: record.duration_ms, spanId: record.span_id }))} /> : <button className="button button--ghost" type="button" disabled>SigNoz dashboard URL not configured</button>}{!run.result.trace_id && <p className="muted">Trace correlation is recorded by the backend but is not currently exposed through the API for this run.</p>}</section>
         <AgentErrorPanel records={records} />
         <PlannedAgentsRoadmap />
         <section className="panel safety-boundary"><h2>Research safety boundary</h2><p>Research decision-support prototype using synthetic data. Agent outputs are simulated recommendations, require authorized human review, and are not clinical instructions.</p></section>

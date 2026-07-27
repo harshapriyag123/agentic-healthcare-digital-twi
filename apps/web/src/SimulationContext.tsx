@@ -40,9 +40,24 @@ type SimulationContextValue = {
 };
 
 const SimulationContext = createContext<SimulationContextValue | null>(null);
+const LAST_RUN_STORAGE_KEY = 'geotwin.lastCompletedRun';
 
 function message(error: unknown) {
     return error instanceof Error ? error.message : 'An unexpected request error occurred.';
+}
+
+function readStoredRun(scenarios: Scenario[]): CompletedRun | null {
+    try {
+        const raw = window.localStorage.getItem(LAST_RUN_STORAGE_KEY);
+        if (!raw) return null;
+        const stored = JSON.parse(raw) as CompletedRun;
+        const scenario = scenarios.find((item) => item.id === stored.scenario?.id);
+        if (!scenario || !stored.result?.simulation_id || !stored.result?.trust || !Array.isArray(stored.result.affected_hospitals)) return null;
+        return { ...stored, scenario };
+    } catch {
+        window.localStorage.removeItem(LAST_RUN_STORAGE_KEY);
+        return null;
+    }
 }
 
 export function SimulationProvider({ children }: { children: React.ReactNode }) {
@@ -89,8 +104,15 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
         setHospitals(hospitalResult.value);
         const savedId = window.localStorage.getItem('geotwin.selectedScenario');
         const initial = scenarioResult.value.find((scenario) => scenario.id === savedId) ?? scenarioResult.value[0] ?? null;
+        const storedRun = readStoredRun(scenarioResult.value);
         setSelectedScenarioState(initial);
         setConfiguration(initial ? structuredClone(initial.request) : null);
+        if (storedRun) {
+            setActiveRun(storedRun);
+            setRuns([storedRun]);
+            setRunState('success');
+            setSelectedAgentId(storedRun.result.agent_decisions[0]?.agent_id ?? storedRun.result.agent_decisions[0]?.agent ?? null);
+        }
         setCatalogState('success');
     }, []);
 
@@ -132,6 +154,7 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
             setSelectedInterventionId(null);
             setRunState('success');
             window.localStorage.setItem('geotwin.lastSimulationId', result.simulation_id);
+            window.localStorage.setItem(LAST_RUN_STORAGE_KEY, JSON.stringify(completed));
             return completed;
         } catch (error) {
             setRunError(message(error));
@@ -139,6 +162,19 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
             return null;
         }
     }, [configuration, runState, scenarios, selectedScenario]);
+
+    useEffect(() => {
+        if (
+            catalogState === 'success'
+            && runState === 'idle'
+            && !activeRun
+            && configuration
+            && window.localStorage.getItem('geotwin.lastSimulationId')
+            && !window.localStorage.getItem(LAST_RUN_STORAGE_KEY)
+        ) {
+            void runSimulation(configuration);
+        }
+    }, [activeRun, catalogState, configuration, runSimulation, runState]);
 
     const runCounterfactuals = useCallback(async (request: CounterfactualRunRequest) => {
         if (counterfactualState === 'loading') return null;

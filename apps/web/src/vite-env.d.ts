@@ -6,5 +6,6 @@ interface ImportMetaEnv {
     readonly VITE_APP_VERSION?: string;
     readonly VITE_DEPLOYMENT_NAME?: string;
     readonly VITE_MAP_STYLE_URL?: string;
+    readonly VITE_SIGNOZ_APP_URL?: string;
     readonly VITE_SIGNOZ_DASHBOARD_URL?: string;
 }

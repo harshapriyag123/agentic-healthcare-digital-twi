@@ -45,6 +45,6 @@ print(f"simulation_id={result['simulation_id']}")
 print(f"trace_id={trace_id}")
 print(f"agents={agents}")
 print(
-    "SigNoz: Traces Explorer → Traces view → "
-    f"filter trace_id = '{trace_id}' → expand simulation.run"
+    "SigNoz: Traces Explorer -> Traces view -> "
+    f"filter trace_id = '{trace_id}' -> expand simulation.run"
 )

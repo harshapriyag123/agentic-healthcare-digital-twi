@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     otel_exporter_otlp_insecure: bool = True
     otel_exporter_otlp_headers: str = ""
     otel_resource_attributes: str = ""
+    signoz_query_endpoint: str = "http://127.0.0.1:8123/"
     cors_allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     trusted_hosts: str = "localhost,127.0.0.1,testserver"
     max_request_body_bytes: int = Field(default=1_048_576, ge=1024, le=10_485_760)
@@ -37,6 +38,16 @@ class Settings(BaseSettings):
         if parsed.scheme not in {"http", "https"} or not parsed.hostname:
             raise ValueError("OTEL_EXPORTER_OTLP_ENDPOINT must be an absolute HTTP(S) URL")
         return value.rstrip("/")
+
+    @field_validator("signoz_query_endpoint")
+    @classmethod
+    def valid_signoz_query_endpoint(cls, value: str) -> str:
+        if not value:
+            return value
+        parsed = urlparse(value)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+            raise ValueError("SIGNOZ_QUERY_ENDPOINT must be an absolute HTTP(S) URL")
+        return value
 
     @property
     def cors_origin_list(self) -> list[str]:

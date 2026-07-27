@@ -61,7 +61,10 @@ async function openTrustDashboard() {
 }
 
 describe('GeoTwin command center', () => {
-    afterEach(() => vi.unstubAllGlobals());
+    afterEach(() => {
+        window.localStorage.clear();
+        vi.unstubAllGlobals();
+    });
 
     it('renders the command center and loads scenario configuration', async () => {
         installFetch(); renderApp(); await ready();
@@ -87,6 +90,33 @@ describe('GeoTwin command center', () => {
         expect(screen.getAllByText('58%').length).toBeGreaterThan(0);
         expect(screen.getAllByText('North Regional Medical Center').length).toBeGreaterThan(0);
         expect(screen.getAllByText('72%').length).toBeGreaterThan(0);
+    });
+
+    it('restores the latest completed simulation after a refresh', async () => {
+        const scenario = scenarios[0];
+        const storedResult = result();
+        window.localStorage.setItem('geotwin.lastCompletedRun', JSON.stringify({
+            result: storedResult,
+            request: scenario.request,
+            scenario,
+            durationMs: 42,
+            completedAt: '2026-07-26T12:00:00.000Z',
+        }));
+        installFetch();
+        renderApp();
+        await ready();
+        expect(screen.getAllByText('58%').length).toBeGreaterThan(0);
+        expect(screen.getAllByText(storedResult.simulation_id).length).toBeGreaterThan(0);
+    });
+
+    it('recovers a legacy simulation ID by rerunning the selected scenario once', async () => {
+        window.localStorage.setItem('geotwin.lastSimulationId', 'legacy-simulation');
+        const fetchMock = installFetch();
+        renderApp();
+        await ready();
+        await screen.findByText('Backend simulation explanation.');
+        expect(fetchMock.mock.calls.filter(([path]) => String(path).endsWith('/simulations/run'))).toHaveLength(1);
+        expect(screen.getAllByText('58%').length).toBeGreaterThan(0);
     });
 
     it('renders different values for different scenario responses', async () => {
@@ -123,7 +153,7 @@ describe('GeoTwin command center', () => {
 
     it('disables the SigNoz link when its URL is missing', async () => {
         installFetch(); renderApp(); await ready();
-        expect(screen.getByRole('button', { name: 'SigNoz dashboard URL not configured' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Embedded trace is available after a telemetry-enabled simulation' })).toBeDisabled();
     });
 
     it('runs the Wildfire + Telemetry Tampering demonstration exactly once', async () => {
@@ -218,7 +248,7 @@ describe('Agent Activity Console', () => {
         await userEvent.click(screen.getByRole('button', { name: /Select Response Orchestrator/ }));
         expect(screen.getAllByText('Not exposed by backend').length).toBeGreaterThan(0);
         expect(screen.getByText('Trace correlation is recorded by the backend but is not currently exposed through the API for this run.')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'SigNoz dashboard URL not configured' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Embedded trace is available after a telemetry-enabled simulation' })).toBeDisabled();
     });
 
     it('renders failed agents prominently and does not expose raw prompts or hidden reasoning', async () => {
@@ -293,7 +323,7 @@ describe('Counterfactual Explorer', () => {
         expect(screen.getByText('+8 simulated patients')).toBeInTheDocument();
         expect(screen.getAllByText('Insufficient confidence for automated prioritization')).not.toHaveLength(0);
         expect(screen.getByRole('heading', { name: 'Comparison Report' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'SigNoz dashboard URL not configured' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Embedded trace is available after a telemetry-enabled simulation' })).toBeDisabled();
     });
 
     it('updates ranking weights without rerunning backend outcomes', async () => {
@@ -369,7 +399,7 @@ describe('Trust and Evidence Dashboard', () => {
         expect(screen.getByRole('heading', { name: 'Conflicts and Anomalies' })).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'Policy Compliance' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /North Regional Medical Center: degraded.*trust evidence degraded/ })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'SigNoz dashboard URL not configured' })).toBeDisabled();
+        expect(screen.getByRole('region', { name: 'Embedded SigNoz trace dashboard' })).toBeInTheDocument();
     });
 
     it('shows unknown state and no positive trust when simulation is missing', async () => {

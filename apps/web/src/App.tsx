@@ -7,6 +7,7 @@ import { CommandCenterPage } from './pages/CommandCenterPage';
 import { CounterfactualExplorerPage } from './pages/CounterfactualExplorerPage';
 import { LandingPage } from './pages/LandingPage';
 import { SimulationPage } from './pages/SimulationPage';
+import { SigNozWorkspacePage } from './pages/SigNozWorkspacePage';
 import { TrustDashboardPage } from './pages/TrustDashboardPage';
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
                 <Route path="/trust" element={<TrustDashboardPage />} />
                 <Route path="/trust/:simulationId" element={<TrustDashboardPage />} />
                 <Route path="/simulations/:simulationId" element={<SimulationPage />} />
+                <Route path="/observability" element={<SigNozWorkspacePage />} />
                 <Route path="/architecture" element={<ArchitecturePage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

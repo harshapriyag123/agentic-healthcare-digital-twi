@@ -1,18 +1,33 @@
-import { useState } from 'react';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import { useSimulation } from '../SimulationContext';
 import { deploymentConfig, deploymentConfigError } from '../deploymentConfig';
 
 const commandLinks = [
     ['Scenarios', 'scenario-configuration'],
-    ['SigNoz', 'observability'],
 ] as const;
 
 export function AppShell() {
     const [collapsed, setCollapsed] = useState(() => window.localStorage.getItem('geotwin.sidebarCollapsed') === 'true');
     const { health, observabilityHealth, selectedScenario, scenarios, setSelectedScenario, runSimulation, runState } = useSimulation();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    useEffect(() => {
+        if (!location.hash) return;
+        const frame = window.requestAnimationFrame(() => {
+            document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        return () => window.cancelAnimationFrame(frame);
+    }, [location.pathname, location.hash]);
+
+    const scrollToCommandSection = (anchor: string) => {
+        if (location.pathname !== '/command-center') return;
+        window.requestAnimationFrame(() => {
+            document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    };
 
     const toggle = () => setCollapsed((current) => {
         window.localStorage.setItem('geotwin.sidebarCollapsed', String(!current));
@@ -38,7 +53,8 @@ export function AppShell() {
                     <NavLink to="/agents">◇ <span className="sidebar__label">Agent Activity</span></NavLink>
                     <NavLink to="/counterfactuals">◇ <span className="sidebar__label">Counterfactuals</span></NavLink>
                     <NavLink to="/trust">◇ <span className="sidebar__label">Trust & Evidence</span></NavLink>
-                    {commandLinks.map(([label, anchor]) => <Link key={anchor} to={`/command-center#${anchor}`}>◇ <span className="sidebar__label">{label}</span></Link>)}
+                    <NavLink to="/observability">◫ <span className="sidebar__label">SigNoz</span></NavLink>
+                    {commandLinks.map(([label, anchor]) => <Link key={anchor} to={`/command-center#${anchor}`} onClick={() => scrollToCommandSection(anchor)}>◇ <span className="sidebar__label">{label}</span></Link>)}
                     <Link to="/command-center#simulation-history">◷ <span className="sidebar__label">Simulation History</span></Link>
                     <NavLink to="/architecture">⌘ <span className="sidebar__label">Architecture</span></NavLink>
                 </nav>

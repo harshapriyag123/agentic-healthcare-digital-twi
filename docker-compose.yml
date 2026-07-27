@@ -1,16 +1,30 @@
 services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_APP_VERSION: ${APP_VERSION:-0.1.0-local}
+        VITE_DEPLOYMENT_NAME: GeoTwin Sentinel Local
+        VITE_SIGNOZ_APP_URL: ${VITE_SIGNOZ_APP_URL:-}
+        VITE_SIGNOZ_DASHBOARD_URL: ${VITE_SIGNOZ_DASHBOARD_URL:-}
+    ports: ["${WEB_PORT:-8080}:8080"]
+    depends_on:
+      api:
+        condition: service_healthy
+
   api:
     build: .
     environment:
       APP_ENV: local
       APP_VERSION: ${APP_VERSION:-0.1.0-local}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:4173,http://localhost:5173}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080,http://localhost:5173}
       TRUSTED_HOSTS: ${TRUSTED_HOSTS:-localhost,127.0.0.1}
       OTEL_ENABLED: ${OTEL_ENABLED:-true}
       OTEL_SERVICE_NAME: geotwin-api
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       OTEL_EXPORTER_OTLP_INSECURE: "true"
-    ports: ["8000:8000"]
+    ports: ["${API_PORT:-8000}:8000"]
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/ready',timeout=2)"]
       interval: 10s
@@ -26,9 +40,9 @@ services:
     volumes:
       - ./observability/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
     ports:
-      - "4317:4317"
-      - "4318:4318"
-      - "13133:13133"
+      - "${OTEL_GRPC_PORT:-4317}:4317"
+      - "${OTEL_HTTP_PORT:-4318}:4318"
+      - "${OTEL_HEALTH_PORT:-13133}:13133"
     healthcheck:
       test: ["CMD", "/otelcol-contrib", "components"]
       interval: 15s

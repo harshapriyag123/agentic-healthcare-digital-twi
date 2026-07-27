@@ -8,10 +8,16 @@ from pathlib import Path
 from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parents[1]
+NESTED_REPOS = {
+    child.resolve() for child in ROOT.iterdir() if child.is_dir() and (child / ".git").exists()
+}
+EXCLUDED_TOP_LEVEL = {"signoz"}
 MARKDOWN = sorted(
     path
     for path in ROOT.rglob("*.md")
     if not any(part in {".git", ".venv", "node_modules"} for part in path.parts)
+    and path.relative_to(ROOT).parts[0] not in EXCLUDED_TOP_LEVEL
+    and not any(path.resolve().is_relative_to(repository) for repository in NESTED_REPOS)
 )
 LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 ENV_NAME = re.compile(

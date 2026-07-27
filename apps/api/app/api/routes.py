@@ -16,6 +16,7 @@ from app.services.catalog import HOSPITALS
 from app.services.counterfactuals import intervention_catalog, run_counterfactual_comparison
 from app.services.scenarios import get_scenario_by_id, get_scenario_catalog
 from app.services.simulation_store import get_simulation
+from app.services.signoz_traces import TraceStoreUnavailable, get_trace_waterfall
 from app.services.twin import run_simulation
 
 router = APIRouter(prefix="/api/v1")
@@ -55,6 +56,23 @@ def ready():
 )
 def observability_health():
     return {"status": "ok", "required_for_readiness": False, **telemetry_status()}
+
+
+@router.get(
+    "/observability/traces/{trace_id}",
+    tags=["Service"],
+    summary="Read a local SigNoz trace waterfall",
+)
+def trace_waterfall(trace_id: str):
+    try:
+        result = get_trace_waterfall(trace_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except TraceStoreUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    if not result["spans"]:
+        raise HTTPException(status_code=404, detail="Trace not found in SigNoz")
+    return result
 
 
 @router.get("/meta", tags=["Service"], summary="Read safe deployment metadata")

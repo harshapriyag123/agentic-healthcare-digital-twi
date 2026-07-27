@@ -134,6 +134,16 @@ export type ObservabilityHealth = {
 };
 export type RequestState = 'idle' | 'loading' | 'success' | 'error';
 
+export type TraceSpan = {
+    name: string; span_id: string; parent_span_id: string; service_name: string;
+    timestamp_nano: number; duration_nano: number; offset_nano: number;
+    has_error: boolean; status_code_string: string;
+};
+export type TraceWaterfall = {
+    trace_id: string; span_count: number; duration_nano: number;
+    start_timestamp_nano: number; spans: TraceSpan[];
+};
+
 export type CompletedRun = {
     result: SimulationResult;
     request: SimulationRequest;

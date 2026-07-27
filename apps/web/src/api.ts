@@ -1,4 +1,4 @@
-import type { Health, Hospital, ObservabilityHealth, Scenario, SimulationRequest, SimulationResult } from './types';
+import type { Health, Hospital, ObservabilityHealth, Scenario, SimulationRequest, SimulationResult, TraceWaterfall } from './types';
 import type { CounterfactualExplorerResponse, CounterfactualRunRequest, InterventionDefinition } from './counterfactualTypes';
 import type { TrustDashboardResponse } from './trustTypes';
 import { apiUrl } from './deploymentConfig';
@@ -41,6 +41,7 @@ export const api = {
     scenarios: () => requestJson<Scenario[]>('/api/v1/scenarios'),
     interventions: () => requestJson<InterventionDefinition[]>('/api/v1/counterfactuals/interventions'),
     trust: (simulationId: string) => requestJson<TrustDashboardResponse>(`/api/v1/trust/${encodeURIComponent(simulationId)}`),
+    trace: (traceId: string) => requestJson<TraceWaterfall>(`/api/v1/observability/traces/${encodeURIComponent(traceId)}`),
     runSimulation: (request: SimulationRequest) => requestJson<SimulationResult>('/api/v1/simulations/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -1,10 +1,10 @@
 import { lazy, Suspense, useState } from 'react';
 
-import { buildSigNozTraceLink } from '../agentUtils';
 import { hospitalOutcomeDiffs, interventionApplicability, normalizeWeights, outcomeAsRun, transferPlanDiff } from '../counterfactualUtils';
 import type { CounterfactualExplorerResponse, CounterfactualOutcome, InterventionDefinition, InterventionParameters, MapComparisonMode, RankingWeights } from '../counterfactualTypes';
 import type { CompletedRun, Hospital } from '../types';
 import { decimal, percent } from '../utils';
+import { EmbeddedTraceDashboard } from './EmbeddedTraceDashboard';
 
 const HealthcareMap = lazy(() => import('./HealthcareMap').then((module) => ({ default: module.HealthcareMap })));
 const processingStages = ['Loading baseline', 'Validating interventions', 'Applying intervention models', 'Re-evaluating hospital digital twins', 'Recalculating transfer plans', 'Reassessing trust and uncertainty', 'Ranking interventions', 'Publishing telemetry', 'Comparison complete'];
@@ -80,8 +80,7 @@ export function CounterfactualMapComparison({ run, comparison, intervention, hos
 
 export function CounterfactualObservability({ comparison }: { comparison: CounterfactualExplorerResponse }) {
     const url = import.meta.env.VITE_SIGNOZ_DASHBOARD_URL as string | undefined;
-    const traceUrl = buildSigNozTraceLink(url, comparison.trace_id);
-    return <section className="panel"><span className="eyebrow">OpenTelemetry correlation</span><h2>Comparison Observability</h2><dl className="metric-list"><div><dt>Comparison ID</dt><dd><code>{comparison.comparison_id}</code></dd></div><div><dt>Simulation ID</dt><dd><code>{comparison.simulation_id}</code></dd></div><div><dt>Trace ID</dt><dd><code>{comparison.trace_id ?? 'Not exposed while telemetry export is disabled'}</code></dd></div><div><dt>Partial failures</dt><dd>{comparison.incomplete ? 'Yes · review required' : 'None'}</dd></div></dl>{traceUrl ? <a className="button button--primary" href={traceUrl} target="_blank" rel="noreferrer">Open comparison trace in SigNoz</a> : <button type="button" className="button button--ghost" disabled>{url ? 'Comparison trace ID not available' : 'SigNoz dashboard URL not configured'}</button>}</section>;
+    return <section className="panel"><span className="eyebrow">OpenTelemetry correlation</span><h2>Comparison Observability</h2><dl className="metric-list"><div><dt>Comparison ID</dt><dd><code>{comparison.comparison_id}</code></dd></div><div><dt>Simulation ID</dt><dd><code>{comparison.simulation_id}</code></dd></div><div><dt>Trace ID</dt><dd><code>{comparison.trace_id ?? 'Not exposed while telemetry export is disabled'}</code></dd></div><div><dt>Partial failures</dt><dd>{comparison.incomplete ? 'Yes · review required' : 'None'}</dd></div></dl>{url ? <EmbeddedTraceDashboard simulationId={comparison.simulation_id} traceId={comparison.trace_id} /> : <button type="button" className="button button--ghost" disabled>SigNoz dashboard URL not configured</button>}</section>;
 }
 
 export function CounterfactualReport({ run, comparison, ranking }: { run: CompletedRun; comparison: CounterfactualExplorerResponse; ranking: CounterfactualExplorerResponse['ranking'] }) {

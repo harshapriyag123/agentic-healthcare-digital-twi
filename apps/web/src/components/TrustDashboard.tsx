@@ -1,11 +1,11 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
 
-import { buildSigNozTraceLink } from '../agentUtils';
 import { evidenceForAgent, filterEvidence, trustBand, trustExplanation, uncertaintyBand } from '../trustUtils';
 import type { CounterfactualExplorerResponse } from '../counterfactualTypes';
 import type { CompletedRun, EvidenceItem, Hospital } from '../types';
 import type { EvidenceFiltersState, TrustDashboardResponse, TrustRecord } from '../trustTypes';
 import { percent } from '../utils';
+import { EmbeddedTraceDashboard } from './EmbeddedTraceDashboard';
 
 const HealthcareMap = lazy(() => import('./HealthcareMap').then((module) => ({ default: module.HealthcareMap })));
 const initialFilters: EvidenceFiltersState = { search: '', sourceType: '', integrity: '', reliability: '', agent: '', hospital: '', problematicOnly: false };
@@ -85,6 +85,6 @@ export function TrustMap({ run, hospitals, evidence }: { run: CompletedRun; hosp
 }
 
 export function TrustObservability({ data }: { data: TrustDashboardResponse }) {
-    const dashboard = import.meta.env.VITE_SIGNOZ_DASHBOARD_URL as string | undefined; const link = buildSigNozTraceLink(dashboard, data.trace_id);
-    return <section className="panel"><h2>Trust Observability</h2><dl className="metric-list"><div><dt>Simulation ID</dt><dd><code>{data.simulation_id}</code></dd></div><div><dt>Trace ID</dt><dd><code>{data.trace_id ?? 'Not exposed while telemetry export is disabled'}</code></dd></div><div><dt>Calculation version</dt><dd>{data.trust.calculation_version ?? 'Unavailable'}</dd></div><div><dt>Partial response</dt><dd>{data.partial ? 'Yes' : 'No'}</dd></div></dl>{link ? <a className="button button--primary" href={link} target="_blank" rel="noreferrer">Open trust trace in SigNoz</a> : <button type="button" className="button button--ghost" disabled>{dashboard ? 'Trust trace ID not available' : 'SigNoz dashboard URL not configured'}</button>}</section>;
+    const dashboard = import.meta.env.VITE_SIGNOZ_DASHBOARD_URL as string | undefined;
+    return <section className="panel"><h2>Trust Observability</h2><dl className="metric-list"><div><dt>Simulation ID</dt><dd><code>{data.simulation_id}</code></dd></div><div><dt>Trace ID</dt><dd><code>{data.trace_id ?? 'Not exposed while telemetry export is disabled'}</code></dd></div><div><dt>Calculation version</dt><dd>{data.trust.calculation_version ?? 'Unavailable'}</dd></div><div><dt>Partial response</dt><dd>{data.partial ? 'Yes' : 'No'}</dd></div></dl>{dashboard ? <EmbeddedTraceDashboard simulationId={data.simulation_id} traceId={data.trace_id} /> : <button type="button" className="button button--ghost" disabled>SigNoz dashboard URL not configured</button>}</section>;
 }

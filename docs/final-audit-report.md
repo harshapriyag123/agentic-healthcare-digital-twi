@@ -30,8 +30,8 @@ do not convert local checks into external deployment or SigNoz proof.
 | 16 | Build result | VERIFIED | Ruff, ESLint, TypeScript, docs links/invariants, secret-pattern scan, and Vite production build passed. Vite reports a non-blocking MapLibre chunk-size warning. |
 | 17 | Docker result | BLOCKED | Docker client 29.2.1 is installed, but no Docker Engine was running; image and Compose runtime were not verified locally. |
 | 18 | Cloud deployment | MANUAL ACTION REQUIRED | Render/Vercel configuration exists; no public URL or provider state was available for a smoke test. |
-| 19 | SigNoz verification | MANUAL ACTION REQUIRED | No live SigNoz instance/credentials were supplied. Local in-memory spans verify instrumentation, not ingestion or UI receipt. |
-| 20 | Primary demo trace ID | BLOCKED | No externally searchable SigNoz trace ID was produced. Do not substitute the local smoke simulation UUID. |
+| 19 | SigNoz verification | VERIFIED | Local SigNoz accepted OTLP/gRPC on port 4317; exporter health was active; trace lookup succeeded through the local SigNoz API and `/trace/{id}` UI route. |
+| 20 | Primary demo trace ID | VERIFIED | Local trace `be25fb58b9ef919162ca9e6614491523` contains the Wildfire + Telemetry Tampering run. It is searchable only in the user's local SigNoz instance, not a public deployment. |
 | 21 | README | VERIFIED | Identity, safety, architecture, SigNoz role, quick start, primary scenario, stack, limitations, and documentation links are present; public links/screenshots remain pending. |
 | 22 | Blog | IMPLEMENTED BUT NOT EXTERNALLY VERIFIED | Draft exists with repository commands, code, actual span names, and reproduced debugging findings. Publication and screenshots remain manual. |
 | 23 | Blog claims | VERIFIED | Implementation claims were checked against source/tests; external SigNoz receipt and publication are explicitly unclaimed. |
@@ -41,7 +41,7 @@ do not convert local checks into external deployment or SigNoz proof.
 | 27 | Screenshots | MANUAL ACTION REQUIRED | No image assets are committed; the shot list includes state, caption, filename, placement, and sensitive-data review. |
 | 28 | Video | MANUAL ACTION REQUIRED | Script exists; no recording or uploaded URL is claimed. |
 | 29 | Public URLs | MANUAL ACTION REQUIRED | Repository URL is present. Demo, video, published blog, and SigNoz URLs are not available. |
-| 30 | Manual actions remaining | MANUAL ACTION REQUIRED | Start Docker/SigNoz, verify ingestion, create dashboards/alerts, capture screenshots, deploy, smoke public URLs, rehearse, record/publish video/blog, fill team/links, and submit. |
+| 30 | Manual actions remaining | MANUAL ACTION REQUIRED | Create dashboards/alerts, capture screenshots, deploy, smoke public URLs, rehearse, record/publish video/blog, fill team/links, and submit. |
 | 31 | Known limitations | VERIFIED | Synthetic deterministic model, no clinical/causal/security validation, process-local persistence, no production auth/rate limiting, and observability not proof of correctness. |
 
 ## Reproduction

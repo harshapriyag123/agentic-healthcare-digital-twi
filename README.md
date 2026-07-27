@@ -9,7 +9,7 @@
 ![Synthetic data](https://img.shields.io/badge/data-synthetic-orange)
 ![Research prototype](https://img.shields.io/badge/status-research_prototype-6B7280)
 
-An observable, agentic geospatial digital twin for exploring healthcare infrastructure resilience under compound climate, infrastructure, cyber, and telemetry disruptions. GeoTwin Sentinel models a synthetic regional hospital network, exposes evidence-linked agent recommendations, compares bounded counterfactual interventions, and emits traces, metrics, and logs for audit in SigNoz.
+GeoTwin Sentinel is an observable agentic digital twin for exploring how a synthetic regional healthcare network responds to compound climate, infrastructure, cyber, and telemetry disruptions. A user selects a scenario, adjusts bounded conditions, and runs a deterministic simulation. The system evaluates hospital dependencies and capacity, coordinates specialized rule-based agents, proposes reviewable actions, compares counterfactual interventions, calculates evidence and trust indicators, and emits correlated OpenTelemetry traces, metrics, and logs for analysis in SigNoz.
 
 > **Safety boundary:** GeoTwin Sentinel is a research decision-support prototype using synthetic data. Its outputs are simulated estimates intended for authorized human review and are not clinical, transfer, cybersecurity, infrastructure-control, or emergency-response instructions.
 
@@ -55,7 +55,7 @@ flowchart LR
     Collector --> SigNoz[SigNoz]
 ```
 
-The API loads packaged synthetic catalogs, evaluates a request without external data calls, and stores completed baselines in bounded process-local memory for trust and counterfactual lookup. The browser stores only current-session presentation history. Restarting the API invalidates prior simulation IDs. See [system architecture](docs/architecture/system-architecture.md), [data flow](docs/architecture/data-flow.md), and [deployment architecture](docs/architecture/deployment.md).
+The API loads packaged synthetic catalogs, evaluates a request without external data calls, and stores completed baselines in bounded process-local memory for trust and counterfactual lookup. The browser persists the latest synthetic completed run locally so command-center metrics survive refreshes. Restarting the API invalidates prior server-side simulation IDs. See [system architecture](docs/architecture/system-architecture.md), [data flow](docs/architecture/data-flow.md), and [deployment architecture](docs/architecture/deployment.md).
 
 ### Agent and trust workflow
 
@@ -86,35 +86,155 @@ See the [verified Query Builder workflow, dashboards, and alerts](docs/signoz-qu
 
 React 19, TypeScript, Vite, MapLibre GL, FastAPI, Pydantic, NetworkX, OpenTelemetry, pytest, Vitest, Ruff, Docker, Render, Vercel, and SigNoz.
 
-## Quick start
+## Demo workflow
 
-Prerequisites: Git, Python 3.11+ (CI/container uses 3.12), and Node.js 20 with npm. From the repository root:
+1. Open **Command Center** and select a compound-disruption scenario.
+2. Run the simulation and inspect regional risk, resilience, affected hospitals, transfers, and the GIS view.
+3. Open **Agent Activity** to inspect agent status, duration, evidence, warnings, and recommendations.
+4. Open **Counterfactuals** to compare bounded interventions against the exact current baseline.
+5. Open **Trust & Evidence** to inspect evidence completeness, telemetry integrity, confidence, policy checks, and human-review triggers.
+6. Copy the trace ID or open **SigNoz** to follow the execution across the API, simulation engine, agents, trust checks, logs, and metrics.
+
+## Prerequisites
+
+For native development:
+
+- Git
+- Python 3.11 or newer; Python 3.12 matches the container and CI
+- Node.js 20 with npm
+
+For the container workflow:
+
+- Docker Desktop on Windows or macOS, or Docker Engine with the Compose plugin on Linux
+
+Check the installed tools:
+
+```bash
+git --version
+python --version
+node --version
+npm --version
+docker --version
+docker compose version
+```
+
+## Local setup
+
+Clone the repository first:
+
+```bash
+git clone https://github.com/harshapriyag123/agentic-healthcare-digital-twi.git
+cd agentic-healthcare-digital-twi
+```
+
+### macOS and Linux
+
+Start the API:
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate          # Windows PowerShell: .venv\Scripts\Activate.ps1
+source .venv/bin/activate
+python -m pip install --upgrade pip
 python -m pip install -e '.[dev]'
 cp apps/api/.env.example apps/api/.env
 uvicorn app.main:app --app-dir apps/api --reload --host 127.0.0.1 --port 8000
 ```
 
-In a second terminal:
+In a second terminal, start the web application:
 
 ```bash
 cd apps/web
 npm ci
-cp .env.example .env.local         # Windows: copy .env.example .env.local
+cp .env.example .env.local
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
-Open `http://127.0.0.1:5173`. API documentation is at `http://127.0.0.1:8000/docs` in local/test mode. For one-command container startup, run `docker compose up --build`; the UI remains a separate Vite process unless deployed. Full instructions: [local development](docs/guides/local-development.md).
+### Windows PowerShell
+
+Start the API:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
+Copy-Item apps/api/.env.example apps/api/.env
+uvicorn app.main:app --app-dir apps/api --reload --host 127.0.0.1 --port 8000
+```
+
+If PowerShell blocks virtual-environment activation, run
+`Set-ExecutionPolicy -Scope Process Bypass` in that terminal and activate again.
+
+In a second PowerShell terminal:
+
+```powershell
+Set-Location apps/web
+npm ci
+Copy-Item .env.example .env.local
+npm run dev -- --host 127.0.0.1 --port 5173
+```
+
+### Local URLs
+
+| Component | URL |
+|---|---|
+| GeoTwin web application | `http://127.0.0.1:5173` |
+| FastAPI health | `http://127.0.0.1:8000/api/v1/health` |
+| FastAPI readiness | `http://127.0.0.1:8000/api/v1/ready` |
+| API documentation, local mode only | `http://127.0.0.1:8000/docs` |
+| Local SigNoz, when separately installed | `http://localhost:3301` |
+
+The copied web example sets `VITE_API_BASE_URL` for the separate development servers. Run a scenario once to populate the Command Center; the latest synthetic result is stored in browser local storage so it survives navigation and refreshes.
+
+## Docker setup
+
+Docker Compose runs the complete GeoTwin web/API/collector topology on Windows,
+macOS, and Linux. From the repository root:
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+Windows PowerShell equivalent:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up --build
+```
+
+Open `http://127.0.0.1:8080`. The web image builds React and serves it through
+Nginx, which proxies same-origin `/api` requests to the non-root FastAPI
+container. The collector accepts OTLP on ports `4317` and `4318`.
+
+Useful commands:
+
+```bash
+docker compose ps
+docker compose logs -f api web otel-collector
+docker compose down
+```
+
+If ports are already occupied, edit the copied `.env`:
+
+```dotenv
+WEB_PORT=18080
+API_PORT=18000
+OTEL_GRPC_PORT=14317
+OTEL_HTTP_PORT=14318
+OTEL_HEALTH_PORT=13134
+```
+
+Then open the configured web port. Compose includes an OpenTelemetry Collector,
+not the complete SigNoz storage and UI. Follow the [SigNoz setup guide](docs/guides/signoz-setup.md)
+to connect a local or hosted SigNoz destination.
 
 ## Configuration
 
 Copy the scoped examples; never commit populated `.env` files.
 
 - Backend: `APP_ENV`, `APP_VERSION`, `LOG_LEVEL`, `CORS_ALLOWED_ORIGINS`, `TRUSTED_HOSTS`, `MAX_REQUEST_BODY_BYTES`, `OTEL_ENABLED`, `OTEL_SERVICE_NAME`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_INSECURE`, `OTEL_EXPORTER_OTLP_HEADERS`, `OTEL_RESOURCE_ATTRIBUTES`.
-- Browser-public: `VITE_APP_ENV`, `VITE_APP_VERSION`, `VITE_DEPLOYMENT_NAME`, `VITE_API_BASE_URL`, `VITE_MAP_STYLE_URL`, `VITE_SIGNOZ_DASHBOARD_URL`.
+- Browser-public: `VITE_APP_ENV`, `VITE_APP_VERSION`, `VITE_DEPLOYMENT_NAME`, `VITE_API_BASE_URL`, `VITE_MAP_STYLE_URL`, `VITE_SIGNOZ_APP_URL`, `VITE_SIGNOZ_DASHBOARD_URL`.
 
 Only `VITE_*` values enter the browser bundle; they must never contain ingestion keys or secrets. See [configuration tables](docs/guides/local-development.md#environment-configuration).
 
@@ -136,7 +256,10 @@ python scripts/verify_observability.py
 
 ## Test and validate
 
+macOS and Linux:
+
 ```bash
+source .venv/bin/activate
 ruff check .
 pytest
 cd apps/web
@@ -146,11 +269,58 @@ npm test -- --run
 npm run build
 ```
 
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+ruff check .
+pytest
+Set-Location apps/web
+npm run lint
+npm run typecheck
+npm test -- --run
+npm run build
+```
+
 Deployment smoke tests and external-service requirements are documented in [testing](docs/guides/testing.md). CI also scans common secret patterns and validates a non-root container. The [technical blog draft](docs/blog/observing-agentic-digital-twin-with-signoz.md), [submission copy](docs/hackathon-submission.md), and [submission checklist](docs/submission-checklist.md) are kept in the repository.
 
-## Deployment
+## Cloud setup
 
-The implemented reference topology is a Vercel static frontend, one Render container worker, and optional SigNoz Cloud export. Public URLs are not committed and remain pending manual provider deployment/verification. See [cloud deployment](docs/guides/cloud-deployment.md), [release checklist](docs/RELEASE_CHECKLIST.md), and [demo recovery](docs/demo/demo-recovery.md).
+### Recommended free hackathon path: Render
+
+The checked-in [Render Blueprint](render.yaml) defines:
+
+- `geotwin-sentinel-web`: a free static React site
+- `geotwin-sentinel-api`: a free Docker-based FastAPI service
+
+Deployment steps:
+
+1. Push a reviewed commit to GitHub. Do not commit `.env`, tokens, passwords, or OTLP headers.
+2. In Render, select **New → Blueprint**, connect the GitHub repository, and use `render.yaml`.
+3. Deploy the API and copy its public HTTPS origin.
+4. Set frontend `VITE_API_BASE_URL` to that API origin.
+5. Copy the frontend HTTPS origin into API `CORS_ALLOWED_ORIGINS`.
+6. Keep API `TRUSTED_HOSTS=*.onrender.com`.
+7. If using hosted SigNoz, store `OTEL_EXPORTER_OTLP_ENDPOINT` and secret `OTEL_EXPORTER_OTLP_HEADERS` only in Render's API environment.
+8. Set `VITE_SIGNOZ_APP_URL` or `VITE_SIGNOZ_DASHBOARD_URL` only to a public HTTPS, access-appropriate SigNoz URL. A local `localhost:3301` URL cannot work for evaluators.
+9. Redeploy both services and verify the frontend, `/api/v1/health`, `/api/v1/ready`, one complete simulation, trust lookup, counterfactual comparison, and trace receipt.
+
+Render's free API can sleep after inactivity. Wake it before judging by opening
+its health URL and allow time for a cold start.
+
+### Alternative free path: Vercel
+
+The repository also contains [vercel.json](vercel.json), which builds the React
+SPA and routes `/api/*` to the packaged FastAPI Python function. Import the
+GitHub repository into Vercel, keep the repository root as the project root, set
+the public `VITE_*` configuration, and deploy. This is convenient for one URL,
+but it does not deploy the Docker images or a SigNoz server.
+
+GitHub Pages can host only static frontend files and cannot run this Python API.
+For complete production variables, smoke tests, rollback, CORS, security headers,
+and SigNoz export instructions, use the [cloud deployment guide](docs/guides/cloud-deployment.md),
+[deployment and release guide](docs/DEPLOYMENT.md), and
+[release checklist](docs/RELEASE_CHECKLIST.md).
 
 ## Repository map
 
