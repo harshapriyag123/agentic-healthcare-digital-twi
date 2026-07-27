@@ -15,8 +15,8 @@ from app.models.domain import (
 from app.services.catalog import HOSPITALS
 from app.services.counterfactuals import intervention_catalog, run_counterfactual_comparison
 from app.services.scenarios import get_scenario_by_id, get_scenario_catalog
-from app.services.simulation_store import get_simulation
 from app.services.signoz_traces import TraceStoreUnavailable, get_trace_waterfall
+from app.services.simulation_store import get_simulation
 from app.services.twin import run_simulation
 
 router = APIRouter(prefix="/api/v1")
