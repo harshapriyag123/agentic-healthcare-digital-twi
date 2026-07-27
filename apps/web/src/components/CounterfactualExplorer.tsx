@@ -79,8 +79,7 @@ export function CounterfactualMapComparison({ run, comparison, intervention, hos
 }
 
 export function CounterfactualObservability({ comparison }: { comparison: CounterfactualExplorerResponse }) {
-    const url = import.meta.env.VITE_SIGNOZ_DASHBOARD_URL as string | undefined;
-    return <section className="panel"><span className="eyebrow">OpenTelemetry correlation</span><h2>Comparison Observability</h2><dl className="metric-list"><div><dt>Comparison ID</dt><dd><code>{comparison.comparison_id}</code></dd></div><div><dt>Simulation ID</dt><dd><code>{comparison.simulation_id}</code></dd></div><div><dt>Trace ID</dt><dd><code>{comparison.trace_id ?? 'Not exposed while telemetry export is disabled'}</code></dd></div><div><dt>Partial failures</dt><dd>{comparison.incomplete ? 'Yes · review required' : 'None'}</dd></div></dl>{url ? <EmbeddedTraceDashboard simulationId={comparison.simulation_id} traceId={comparison.trace_id} /> : <button type="button" className="button button--ghost" disabled>SigNoz dashboard URL not configured</button>}</section>;
+    return <section className="panel"><span className="eyebrow">OpenTelemetry correlation</span><h2>Comparison Observability</h2><dl className="metric-list"><div><dt>Comparison ID</dt><dd><code>{comparison.comparison_id}</code></dd></div><div><dt>Simulation ID</dt><dd><code>{comparison.simulation_id}</code></dd></div><div><dt>Trace ID</dt><dd><code>{comparison.trace_id ?? 'Not exposed while telemetry export is disabled'}</code></dd></div><div><dt>Partial failures</dt><dd>{comparison.incomplete ? 'Yes · review required' : 'None'}</dd></div></dl><EmbeddedTraceDashboard simulationId={comparison.simulation_id} traceId={comparison.trace_id} /></section>;
 }
 
 export function CounterfactualReport({ run, comparison, ranking }: { run: CompletedRun; comparison: CounterfactualExplorerResponse; ranking: CounterfactualExplorerResponse['ranking'] }) {

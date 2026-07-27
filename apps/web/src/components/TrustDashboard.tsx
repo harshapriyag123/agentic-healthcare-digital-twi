@@ -85,6 +85,5 @@ export function TrustMap({ run, hospitals, evidence }: { run: CompletedRun; hosp
 }
 
 export function TrustObservability({ data }: { data: TrustDashboardResponse }) {
-    const dashboard = import.meta.env.VITE_SIGNOZ_DASHBOARD_URL as string | undefined;
-    return <section className="panel"><h2>Trust Observability</h2><dl className="metric-list"><div><dt>Simulation ID</dt><dd><code>{data.simulation_id}</code></dd></div><div><dt>Trace ID</dt><dd><code>{data.trace_id ?? 'Not exposed while telemetry export is disabled'}</code></dd></div><div><dt>Calculation version</dt><dd>{data.trust.calculation_version ?? 'Unavailable'}</dd></div><div><dt>Partial response</dt><dd>{data.partial ? 'Yes' : 'No'}</dd></div></dl>{dashboard ? <EmbeddedTraceDashboard simulationId={data.simulation_id} traceId={data.trace_id} /> : <button type="button" className="button button--ghost" disabled>SigNoz dashboard URL not configured</button>}</section>;
+    return <section className="panel"><h2>Trust Observability</h2><dl className="metric-list"><div><dt>Simulation ID</dt><dd><code>{data.simulation_id}</code></dd></div><div><dt>Trace ID</dt><dd><code>{data.trace_id ?? 'Not exposed while telemetry export is disabled'}</code></dd></div><div><dt>Calculation version</dt><dd>{data.trust.calculation_version ?? 'Unavailable'}</dd></div><div><dt>Partial response</dt><dd>{data.partial ? 'Yes' : 'No'}</dd></div></dl><EmbeddedTraceDashboard simulationId={data.simulation_id} traceId={data.trace_id} /></section>;
 }
