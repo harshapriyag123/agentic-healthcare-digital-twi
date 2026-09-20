@@ -20,10 +20,15 @@
 - Backend container now uses a pinned slim Python runtime, a non-root account, platform `PORT`, one worker, and graceful shutdown.
 - Browser API configuration is centralized and production URLs require HTTPS.
 - CORS is explicit and environment-aware; request bodies are bounded.
+- Production startup now distinguishes a serverless cold start from an unavailable backend.
+- The observability route exposes live readiness and execution evidence without claiming a SigNoz connection when export is disabled.
 
 ### Fixed
 
 - Corrected Docker package-copy/install order and added SPA deep-link hosting rewrites.
+- Counterfactual comparison now replays the bounded deterministic baseline when Vercel routes requests to different serverless processes.
+- OpenTelemetry span-structure tests now use an explicit sampler instead of inheriting a low CI sampling ratio.
+- Mobile navigation now uses distinct, labeled screen markers instead of repeated ambiguous symbols.
 
 ### Security
 
@@ -32,7 +37,7 @@
 ### Known limitations
 
 - All facilities, events, telemetry, and results are synthetic; models and agents are simplified and not clinically, causally, operationally, or empirically validated.
-- Simulation, counterfactual, and trust history remains process-local and resets on restart or redeploy.
+- Server-side simulation and trust lookup history remains process-local and resets on restart or redeploy; the browser keeps the latest completed run, and counterfactuals can replay its bounded input.
 - The public synthetic demo has no authentication or application-level rate limiting.
 - Evidence lineage is not cryptographic provenance; integrity/anomaly checks are deterministic rules rather than machine learning.
 - Public deployment URLs, screenshots, demo video, and live SigNoz receipt remain manual publication steps.

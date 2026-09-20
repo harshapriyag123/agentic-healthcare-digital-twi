@@ -246,9 +246,13 @@ def _build_explanation(
     return explanation
 
 
-def run_simulation(request: SimulationRequest) -> SimulationResponse:
+def run_simulation(
+    request: SimulationRequest,
+    *,
+    simulation_id_override: str | None = None,
+) -> SimulationResponse:
     simulation_started = perf_counter()
-    simulation_id = str(uuid4())
+    simulation_id = simulation_id_override or str(uuid4())
     observed_at = datetime.now(UTC).isoformat()
     dimensions = {"scenario.type": scenario_type(request.scenario_name)}
     active_simulations.add(1, dimensions)

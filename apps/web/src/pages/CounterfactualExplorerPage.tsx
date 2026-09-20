@@ -43,7 +43,7 @@ export function CounterfactualExplorerPage() {
     if (context.catalogState === 'loading') return <div className="page-state" role="status">Loading Counterfactual Explorer…</div>;
     if (!run) return <div className="page-state"><h1>Counterfactual baseline unavailable</h1><p>{simulationId ? 'This baseline is not present in the current browser session.' : 'Run a synthetic scenario before comparing interventions.'}</p><Link className="button button--primary" to="/command-center">Open Command Center</Link></div>;
 
-    const runComparison = () => void context.runCounterfactuals({ simulation_id: run.result.simulation_id, interventions: createSelections(selected, parameters), include_hospital_states: true, include_transfer_plans: true });
+    const runComparison = () => void context.runCounterfactuals({ simulation_id: run.result.simulation_id, baseline_request: run.request, interventions: createSelections(selected, parameters), include_hospital_states: true, include_transfer_plans: true });
     const selectAll = () => setSelected(context.interventionDefinitions.filter((definition) => interventionApplicability(definition, run).applicable).map((definition) => definition.id));
     const reset = () => setSelected(recommendedDefaults(run.scenario.id).filter((id) => { const definition = context.interventionDefinitions.find((item) => item.id === id); return Boolean(definition && interventionApplicability(definition, run).applicable); }));
 

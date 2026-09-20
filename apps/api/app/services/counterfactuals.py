@@ -37,6 +37,7 @@ from app.services.twin import (
     _plan_transfers,
     _regional_risk,
     _resilience,
+    run_simulation,
 )
 
 logger = logging.getLogger(__name__)
@@ -535,10 +536,6 @@ def _recommendation(
 def run_counterfactual_comparison(
     request: CounterfactualRunRequest,
 ) -> CounterfactualExplorerResponse:
-    stored = get_simulation(request.simulation_id)
-    if stored is None:
-        raise LookupError("Baseline simulation not found in this server process")
-    original_request, baseline_response = stored
     identifiers = [item.intervention_id for item in request.interventions]
     unknown = [
         identifier
@@ -547,6 +544,23 @@ def run_counterfactual_comparison(
     ]
     if unknown:
         raise ValueError(f"Unknown or non-candidate intervention: {unknown[0]}")
+    stored = get_simulation(request.simulation_id)
+    replayed_baseline = False
+    if stored is None:
+        if request.baseline_request is None:
+            raise LookupError(
+                "Baseline simulation is unavailable; resend the bounded baseline request for deterministic replay"
+            )
+        original_request = request.baseline_request.model_copy(
+            update={"enable_counterfactuals": False}
+        )
+        baseline_response = run_simulation(
+            original_request,
+            simulation_id_override=request.simulation_id,
+        )
+        replayed_baseline = True
+    else:
+        original_request, baseline_response = stored
     comparison_id = str(uuid4())
     with tracer.start_as_current_span("counterfactual.run") as span:
         context = span.get_span_context()
@@ -557,6 +571,7 @@ def run_counterfactual_comparison(
                 "comparison.id": comparison_id,
                 "scenario.name": original_request.scenario_name,
                 "baseline.risk": baseline_response.regional_risk_score,
+                "baseline.replayed": replayed_baseline,
                 "human_review_required": True,
             }
         )
@@ -706,6 +721,11 @@ def run_counterfactual_comparison(
             if incomplete
             else []
         )
+        if replayed_baseline:
+            warnings.append(
+                "The process-local baseline was unavailable, so the bounded input was "
+                "deterministically replayed before comparison."
+            )
         logger.info(
             "Intervention ranking completed",
             extra={
@@ -732,7 +752,7 @@ def run_counterfactual_comparison(
             warnings=warnings,
             limitations=[
                 "Synthetic deterministic estimates; not validated operational forecasts.",
-                "Simulation and comparison history is process-local and bounded.",
+                "Simulation history is browser-local; the API uses bounded process memory with deterministic baseline replay.",
                 "Costs and activation delays are synthetic planning metadata.",
             ],
         )

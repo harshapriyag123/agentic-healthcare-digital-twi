@@ -58,7 +58,7 @@ Never put OTLP headers, cloud tokens, database passwords, or private URLs in `VI
 ## Primary deployment: Render and Vercel
 
 1. Push the reviewed branch and require the `backend`, `frontend`, and `security-and-container` CI jobs.
-2. In Render, create a Blueprint from `render.yaml`. Set `APP_VERSION`, `CORS_ALLOWED_ORIGINS`, `OTEL_EXPORTER_OTLP_ENDPOINT`, and secret `OTEL_EXPORTER_OTLP_HEADERS`. Keep one worker: simulation lookup is process-local.
+2. In Render, create a Blueprint from `render.yaml`. Set `APP_VERSION`, `CORS_ALLOWED_ORIGINS`, `OTEL_EXPORTER_OTLP_ENDPOINT`, and secret `OTEL_EXPORTER_OTLP_HEADERS`. One worker preserves direct process-local lookup; bounded counterfactual requests can also replay their baseline deterministically when process state is absent.
 3. Confirm `https://<render-host>/api/v1/health`, `/ready`, `/health/observability`, and `/meta` return safe JSON.
 4. Import the repository into Vercel. `vercel.json` builds `apps/web` and serves SPA fallbacks and security headers.
 5. Set the six browser-public variables above. Use the exact Vercel origin in Render `CORS_ALLOWED_ORIGINS`.

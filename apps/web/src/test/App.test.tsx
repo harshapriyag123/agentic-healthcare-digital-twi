@@ -12,11 +12,15 @@ function json(body: unknown, status = 200) {
     return Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }));
 }
 
-function installFetch(simulation: () => Promise<Response> = () => json(result()), counterfactual: () => Promise<Response> = () => json(comparison())) {
+function installFetch(
+    simulation: () => Promise<Response> = () => json(result()),
+    counterfactual: () => Promise<Response> = () => json(comparison()),
+    observability = { status: 'ok', enabled: true, configured: true, exporter_active: true, service: 'geotwin-api', required_for_readiness: false },
+) {
     const mock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>((input) => {
         const path = String(input);
         if (path.endsWith('/health')) return json({ status: 'ok', service: 'geotwin-api' });
-        if (path.endsWith('/health/observability')) return json({ status: 'ok', enabled: true, configured: true, exporter_active: true, service: 'geotwin-api', required_for_readiness: false });
+        if (path.endsWith('/health/observability')) return json(observability);
         if (path.endsWith('/hospitals')) return json(hospitals);
         if (path.endsWith('/scenarios')) return json(scenarios);
         if (path.endsWith('/counterfactuals/interventions')) return json(interventionDefinitions);
@@ -156,6 +160,14 @@ describe('GeoTwin command center', () => {
         expect(screen.getByRole('button', { name: 'Embedded trace is available after a telemetry-enabled simulation' })).toBeDisabled();
     });
 
+    it('shows an honest observability readiness workspace without public SigNoz', async () => {
+        installFetch(undefined, undefined, { status: 'ok', enabled: false, configured: true, exporter_active: false, service: 'geotwin-api', required_for_readiness: false }); renderApp('/observability');
+        expect(await screen.findByRole('heading', { name: 'Observability Readiness' })).toBeInTheDocument();
+        expect(screen.getByText('SigNoz is not connected in this deployment')).toBeInTheDocument();
+        expect(screen.getByText(/No persisted trace, dashboard, alert, or export-success claim is made/)).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'What Works vs. What Requires Configuration' })).toBeInTheDocument();
+    });
+
     it('runs the Wildfire + Telemetry Tampering demonstration exactly once', async () => {
         const fetchMock = installFetch(); renderApp('/');
         await screen.findByRole('heading', { name: /Agentic Digital Twin for Healthcare Infrastructure Resilience/ });
@@ -247,7 +259,7 @@ describe('Agent Activity Console', () => {
         installFetch(() => json(withoutTrace)); renderApp(); await openAgentConsole();
         await userEvent.click(screen.getByRole('button', { name: /Select Response Orchestrator/ }));
         expect(screen.getAllByText('Not exposed by backend').length).toBeGreaterThan(0);
-        expect(screen.getByText('Trace correlation is recorded by the backend but is not currently exposed through the API for this run.')).toBeInTheDocument();
+        expect(screen.getByText(/No trace ID was returned because telemetry export is disabled or unavailable/)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Embedded trace is available after a telemetry-enabled simulation' })).toBeDisabled();
     });
 
@@ -310,6 +322,7 @@ describe('Counterfactual Explorer', () => {
         const call = fetchMock.mock.calls.find(([path]) => String(path).endsWith('/counterfactuals/run'));
         const body = JSON.parse(String((call?.[1] as RequestInit).body));
         expect(body.simulation_id).toBe('sim-123');
+        expect(body.baseline_request).toEqual(scenarios[0].request);
         expect(new Set(body.interventions.map((item: { intervention_id: string }) => item.intervention_id)).size).toBe(body.interventions.length);
         await act(async () => resolveComparison(await json(comparison())));
     });

@@ -1,4 +1,4 @@
-import type { HospitalState, TransferAction } from './types';
+import type { HospitalState, SimulationRequest, TransferAction } from './types';
 
 export type InterventionCategory = 'baseline' | 'cyber' | 'capacity' | 'infrastructure' | 'transport' | 'telemetry' | 'combined';
 export type InterventionComplexity = 'low' | 'moderate' | 'high';
@@ -30,7 +30,7 @@ export type InterventionParameters = {
 };
 
 export type InterventionSelection = { intervention_id: string; parameters?: InterventionParameters };
-export type CounterfactualRunRequest = { simulation_id: string; interventions: InterventionSelection[]; include_hospital_states: boolean; include_transfer_plans: boolean };
+export type CounterfactualRunRequest = { simulation_id: string; baseline_request?: SimulationRequest; interventions: InterventionSelection[]; include_hospital_states: boolean; include_transfer_plans: boolean };
 
 export type CounterfactualOutcome = {
     intervention_id: string;

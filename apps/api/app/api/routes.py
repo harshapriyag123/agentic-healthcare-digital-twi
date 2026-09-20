@@ -147,10 +147,10 @@ def counterfactual_interventions():
     "/counterfactuals/run",
     response_model=CounterfactualExplorerResponse,
     tags=["Counterfactuals"],
-    summary="Compare interventions with a stored baseline",
-    description="Applies bounded transformations and reruns the same evaluator. Outcomes are within-model estimates, not validated causal effects.",
+    summary="Compare interventions with a stored or replayed baseline",
+    description="Uses a process-local baseline when available, otherwise deterministically replays the bounded baseline request. It then applies bounded transformations and reruns the same evaluator. Outcomes are within-model estimates, not validated causal effects.",
     responses={
-        404: {"description": "The process-local baseline was not found or expired."},
+        404: {"description": "No process-local baseline or replay request was supplied."},
         422: {"description": "Interventions or parameters are invalid."},
     },
 )

@@ -3,14 +3,18 @@ import type { CounterfactualExplorerResponse, CounterfactualRunRequest, Interven
 import type { TrustDashboardResponse } from './trustTypes';
 import { apiUrl } from './deploymentConfig';
 
-const TIMEOUT_MS = 15_000;
+const DEFAULT_TIMEOUT_MS = 20_000;
+const COLD_START_TIMEOUT_MS = 60_000;
 
-async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-    const attempts = !init?.method || init.method === 'GET' ? 2 : 1;
+type RequestPolicy = { attempts?: number; timeoutMs?: number };
+
+async function requestJson<T>(path: string, init?: RequestInit, policy: RequestPolicy = {}): Promise<T> {
+    const attempts = policy.attempts ?? (!init?.method || init.method === 'GET' ? 2 : 1);
+    const timeoutMs = policy.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     let lastError: unknown;
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       const controller = new AbortController();
-      const timer = window.setTimeout(() => controller.abort(), TIMEOUT_MS);
+      const timer = window.setTimeout(() => controller.abort(), timeoutMs);
       try {
         const response = await fetch(apiUrl(path), { ...init, signal: controller.signal });
         if (!response.ok) {
@@ -35,7 +39,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-    health: () => requestJson<Health>('/api/v1/health'),
+    health: () => requestJson<Health>('/api/v1/health', undefined, { attempts: 1, timeoutMs: COLD_START_TIMEOUT_MS }),
     observabilityHealth: () => requestJson<ObservabilityHealth>('/api/v1/health/observability'),
     hospitals: () => requestJson<Hospital[]>('/api/v1/hospitals'),
     scenarios: () => requestJson<Scenario[]>('/api/v1/scenarios'),

@@ -8,6 +8,7 @@ from app.services.twin import run_simulation
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+from opentelemetry.sdk.trace.sampling import ALWAYS_ON
 from opentelemetry.trace import StatusCode
 
 
@@ -32,7 +33,9 @@ def simulation_request(**updates) -> SimulationRequest:
 
 def recording_provider(monkeypatch) -> InMemorySpanExporter:
     exporter = InMemorySpanExporter()
-    provider = TracerProvider()
+    # CI environments may set a low global OTEL_TRACES_SAMPLER ratio. These
+    # structure tests require deterministic recording.
+    provider = TracerProvider(sampler=ALWAYS_ON)
     provider.add_span_processor(SimpleSpanProcessor(exporter))
     modules = (
         "app.services.twin.tracer",

@@ -103,6 +103,32 @@ def test_duplicate_unknown_and_missing_baselines_are_rejected():
     )
 
 
+def test_missing_serverless_baseline_is_replayed_from_bounded_request():
+    simulation_request = request().model_copy(update={"enable_counterfactuals": False})
+    baseline = run_simulation(simulation_request)
+    clear_simulations()
+
+    response = client.post(
+        "/api/v1/counterfactuals/run",
+        json={
+            "simulation_id": baseline.simulation_id,
+            "baseline_request": simulation_request.model_dump(),
+            "interventions": [{"intervention_id": "network-segmentation"}],
+            "include_hospital_states": True,
+            "include_transfer_plans": True,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["simulation_id"] == baseline.simulation_id
+    assert payload["baseline"]["regional_risk_score"] == baseline.regional_risk_score
+    assert payload["baseline"]["hospital_states"] == [
+        item.model_dump(mode="json") for item in baseline.affected_hospitals
+    ]
+    assert any("deterministically replayed" in warning for warning in payload["warnings"])
+
+
 def test_intervention_applicability_is_enforced_as_a_visible_partial_failure():
     clean = request(tampering=0, missing=0)
     baseline, result = comparison(clean, ["telemetry-verification", "regional-surge-capacity"])

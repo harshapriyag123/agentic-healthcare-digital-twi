@@ -10,7 +10,7 @@ const commandLinks = [
 
 export function AppShell() {
     const [collapsed, setCollapsed] = useState(() => window.localStorage.getItem('geotwin.sidebarCollapsed') === 'true');
-    const { health, observabilityHealth, selectedScenario, scenarios, setSelectedScenario, runSimulation, runState } = useSimulation();
+    const { health, observabilityHealth, catalogState, selectedScenario, scenarios, setSelectedScenario, runSimulation, runState } = useSimulation();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -49,14 +49,14 @@ export function AppShell() {
                 <button className="sidebar__toggle" type="button" onClick={toggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>☰</button>
                 <Link className="brand" to="/" aria-label="GeoTwin Sentinel home"><span className="brand__mark">GT</span><span className="sidebar__label">GeoTwin Sentinel</span></Link>
                 <nav>
-                    <NavLink to="/command-center">◉ <span className="sidebar__label">Command Center</span></NavLink>
-                    <NavLink to="/agents">◇ <span className="sidebar__label">Agent Activity</span></NavLink>
-                    <NavLink to="/counterfactuals">◇ <span className="sidebar__label">Counterfactuals</span></NavLink>
-                    <NavLink to="/trust">◇ <span className="sidebar__label">Trust & Evidence</span></NavLink>
-                    <NavLink to="/observability">◫ <span className="sidebar__label">SigNoz</span></NavLink>
-                    {commandLinks.map(([label, anchor]) => <Link key={anchor} to={`/command-center#${anchor}`} onClick={() => scrollToCommandSection(anchor)}>◇ <span className="sidebar__label">{label}</span></Link>)}
-                    <Link to="/command-center#simulation-history">◷ <span className="sidebar__label">Simulation History</span></Link>
-                    <NavLink to="/architecture">⌘ <span className="sidebar__label">Architecture</span></NavLink>
+                    <NavLink to="/command-center" title="Command Center"><span className="nav-icon">CC</span><span className="sidebar__label">Command Center</span></NavLink>
+                    <NavLink to="/agents" title="Agent Activity"><span className="nav-icon">AG</span><span className="sidebar__label">Agent Activity</span></NavLink>
+                    <NavLink to="/counterfactuals" title="Counterfactuals"><span className="nav-icon">CF</span><span className="sidebar__label">Counterfactuals</span></NavLink>
+                    <NavLink to="/trust" title="Trust & Evidence"><span className="nav-icon">TR</span><span className="sidebar__label">Trust & Evidence</span></NavLink>
+                    <NavLink to="/observability" title="Observability"><span className="nav-icon">OB</span><span className="sidebar__label">Observability</span></NavLink>
+                    {commandLinks.map(([label, anchor]) => <Link key={anchor} title={label} to={`/command-center#${anchor}`} onClick={() => scrollToCommandSection(anchor)}><span className="nav-icon">SC</span><span className="sidebar__label">{label}</span></Link>)}
+                    <Link to="/command-center#simulation-history" title="Simulation History"><span className="nav-icon">HI</span><span className="sidebar__label">Simulation History</span></Link>
+                    <NavLink to="/architecture" title="Architecture"><span className="nav-icon">AR</span><span className="sidebar__label">Architecture</span></NavLink>
                 </nav>
             </aside>
             <div className="app-frame">
@@ -69,7 +69,7 @@ export function AppShell() {
                 <header className="topbar">
                     <div><strong>GeoTwin Sentinel</strong><span>Healthcare Infrastructure Resilience</span></div>
                     <div className="topbar__status">
-                        <span className={`connection ${health?.status === 'ok' ? 'connection--ok' : 'connection--down'}`}>Backend: {health?.status === 'ok' ? 'Healthy' : 'Unavailable'}</span>
+                        <span className={`connection ${catalogState === 'loading' ? 'connection--pending' : health?.status === 'ok' ? 'connection--ok' : 'connection--down'}`}>Backend: {catalogState === 'loading' ? 'Waking API…' : health?.status === 'ok' ? 'Healthy' : 'Unavailable'}</span>
                         <span>OTel: {observabilityHealth?.exporter_active ? 'Exporting' : observabilityHealth?.enabled ? 'Exporter unavailable' : observabilityHealth ? 'Disabled' : 'Unavailable'}</span>
                         <span>Scenario: {selectedScenario?.name ?? 'None'}</span>
                         <button type="button" className="button button--primary" onClick={() => void runDemo()} disabled={runState === 'loading' || scenarios.length === 0}>Run Demo</button>

@@ -86,11 +86,14 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
     const loadCatalog = useCallback(async () => {
         setCatalogState('loading');
         setCatalogError('');
-        const [scenarioResult, hospitalResult, healthResult, observabilityResult, interventionResult] = await Promise.allSettled([
-            api.scenarios(), api.hospitals(), api.health(), api.observabilityHealth(), api.interventions(),
+        try {
+            setHealth(await api.health());
+        } catch {
+            setHealth(null);
+        }
+        const [scenarioResult, hospitalResult, observabilityResult, interventionResult] = await Promise.allSettled([
+            api.scenarios(), api.hospitals(), api.observabilityHealth(), api.interventions(),
         ]);
-        if (healthResult.status === 'fulfilled') setHealth(healthResult.value);
-        else setHealth(null);
         if (observabilityResult.status === 'fulfilled') setObservabilityHealth(observabilityResult.value);
         else setObservabilityHealth(null);
         if (interventionResult.status === 'fulfilled') { setInterventionDefinitions(interventionResult.value); setCounterfactualCatalogError(''); }

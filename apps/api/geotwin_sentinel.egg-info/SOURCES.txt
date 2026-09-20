@@ -23,6 +23,7 @@ apps/api/app/services/counterfactuals.py
 apps/api/app/services/graph.py
 apps/api/app/services/integrity.py
 apps/api/app/services/scenarios.py
+apps/api/app/services/signoz_traces.py
 apps/api/app/services/simulation_store.py
 apps/api/app/services/trust.py
 apps/api/app/services/twin.py
@@ -35,6 +36,7 @@ tests/test_agents.py
 tests/test_api.py
 tests/test_counterfactuals.py
 tests/test_deployment.py
+tests/test_observability.py
 tests/test_telemetry.py
 tests/test_trust.py
 tests/test_twin.py

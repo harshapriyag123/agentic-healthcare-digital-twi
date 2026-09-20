@@ -184,7 +184,7 @@ npm run dev -- --host 127.0.0.1 --port 5173
 | API documentation, local mode only | `http://127.0.0.1:8000/docs` |
 | Local SigNoz, when separately installed | `http://localhost:3301` |
 
-The copied web example sets `VITE_API_BASE_URL` for the separate development servers. Run a scenario once to populate the Command Center; the latest synthetic result is stored in browser local storage so it survives navigation and refreshes.
+The copied web example sets `VITE_API_BASE_URL` for the separate development servers. Run a scenario once to populate the Command Center; the latest synthetic result is stored in browser local storage so it survives navigation and refreshes. Counterfactual requests also include the bounded baseline input, allowing the API to deterministically replay it when a serverless request lands on a different process.
 
 ## Docker setup
 
@@ -314,7 +314,10 @@ The repository also contains [vercel.json](vercel.json), which builds the React
 SPA and routes `/api/*` to the packaged FastAPI Python function. Import the
 GitHub repository into Vercel, keep the repository root as the project root, set
 the public `VITE_*` configuration, and deploy. This is convenient for one URL,
-but it does not deploy the Docker images or a SigNoz server.
+but it does not deploy the Docker images or a SigNoz server. Vercel functions do
+not guarantee process affinity, so the Counterfactual Explorer sends the bounded
+baseline request and the API replays it deterministically if process-local state
+is absent.
 
 GitHub Pages can host only static frontend files and cannot run this Python API.
 For complete production variables, smoke tests, rollback, CORS, security headers,

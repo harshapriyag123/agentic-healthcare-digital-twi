@@ -45,6 +45,35 @@ def test_tampering_reduces_trust():
     assert tampered.trust.recommendation_confidence < clean.trust.recommendation_confidence
 
 
+def test_higher_demand_does_not_reduce_regional_risk():
+    low = run_simulation(request(demand_multiplier=0.8, enable_counterfactuals=False))
+    high = run_simulation(request(demand_multiplier=2.0, enable_counterfactuals=False))
+
+    assert high.regional_risk_score >= low.regional_risk_score
+    assert all(
+        high_state.disruption_probability >= low_state.disruption_probability
+        for high_state, low_state in zip(
+            high.affected_hospitals, low.affected_hospitals, strict=True
+        )
+    )
+
+
+def test_transfer_plan_never_exceeds_source_overflow_or_destination_spare_capacity():
+    result = run_simulation(request(demand_multiplier=1.6, enable_counterfactuals=False))
+    states = {state.hospital_id: state for state in result.affected_hospitals}
+    source = states["HOSP-DFW-002"]
+    source_overflow = max(0, round(source.estimated_demand - source.effective_capacity))
+
+    assert sum(action.patients for action in result.transfer_plan) <= source_overflow
+    for action in result.transfer_plan:
+        destination = states[action.to_hospital_id]
+        destination_spare = max(
+            0, int(destination.effective_capacity - destination.estimated_demand)
+        )
+        assert action.patients <= destination_spare
+        assert action.safety_constraints_satisfied
+
+
 def test_explanation_is_derived_from_completed_response():
     result = run_simulation(request())
     best = max(result.counterfactuals, key=lambda item: item.risk_reduction)

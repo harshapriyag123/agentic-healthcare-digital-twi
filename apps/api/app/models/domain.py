@@ -204,6 +204,7 @@ class InterventionSelection(BaseModel):
 
 class CounterfactualRunRequest(BaseModel):
     simulation_id: str
+    baseline_request: SimulationRequest | None = None
     interventions: list[InterventionSelection] = Field(min_length=1, max_length=6)
     include_hospital_states: bool = True
     include_transfer_plans: bool = True
