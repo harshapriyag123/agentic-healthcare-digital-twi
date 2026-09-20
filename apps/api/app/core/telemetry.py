@@ -96,7 +96,9 @@ def _can_reach_otlp_endpoint(endpoint: str) -> bool:
         return False
     port = parsed.port or 4317
     try:
-        with socket.create_connection((hostname, port), timeout=0.3):
+        with socket.create_connection(
+            (hostname, port), timeout=settings.otel_startup_probe_timeout_seconds
+        ):
             return True
     except OSError:
         return False
@@ -194,6 +196,30 @@ def telemetry_status() -> dict[str, bool | str]:
         "exporter_active": _enabled,
         "service": settings.otel_service_name,
     }
+
+
+def force_flush_telemetry(timeout_millis: int = 2_000) -> bool:
+    """Flush bounded telemetry before a serverless worker can be frozen.
+
+    This confirms only that configured SDK providers accepted the flush request;
+    SigNoz receipt must still be verified in the destination workspace.
+    """
+    if not _enabled:
+        return False
+    flushed = True
+    for provider in (_logger_provider, _meter_provider, _tracer_provider):
+        if provider is None:
+            continue
+        try:
+            result = provider.force_flush(timeout_millis=timeout_millis)
+            if result is False:
+                flushed = False
+        except Exception:
+            flushed = False
+            logging.getLogger(__name__).exception(
+                "Telemetry force flush failed; API response will continue"
+            )
+    return flushed
 
 
 def shutdown_telemetry() -> None:

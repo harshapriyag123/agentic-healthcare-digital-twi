@@ -48,6 +48,16 @@ def test_invalid_otlp_url_is_rejected_without_exposing_configuration():
     assert "endpoint" not in response.text.lower()
 
 
+def test_production_does_not_claim_localhost_as_signoz_configuration():
+    configured = Settings(
+        app_env="production",
+        cors_allowed_origins="https://demo.example",
+        trusted_hosts="api.example",
+        otel_enabled=True,
+    )
+    assert configured.public_metadata["signoz_export_configured"] is False
+
+
 def test_health_readiness_and_metadata_are_fast_safe_contracts():
     assert client.get("/api/v1/health").json()["status"] == "ok"
     assert client.get("/health").json()["status"] == "ok"

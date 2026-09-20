@@ -29,6 +29,8 @@
 - Counterfactual comparison now replays the bounded deterministic baseline when Vercel routes requests to different serverless processes.
 - OpenTelemetry span-structure tests now use an explicit sampler instead of inheriting a low CI sampling ratio.
 - Mobile navigation now uses distinct, labeled screen markers instead of repeated ambiguous symbols.
+- The production Observability route now provides an interactive SigNoz simulation workspace with execution-driven Overview, Traces, Logs, and Service Map modules.
+- Telemetry providers are force-flushed after simulation and counterfactual requests to reduce serverless batch loss when real OTLP export is configured.
 
 ### Security
 

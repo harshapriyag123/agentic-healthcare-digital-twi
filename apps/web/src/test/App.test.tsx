@@ -67,6 +67,7 @@ async function openTrustDashboard() {
 describe('GeoTwin command center', () => {
     afterEach(() => {
         window.localStorage.clear();
+        vi.unstubAllEnvs();
         vi.unstubAllGlobals();
     });
 
@@ -166,6 +167,25 @@ describe('GeoTwin command center', () => {
         expect(screen.getByText('SigNoz is not connected in this deployment')).toBeInTheDocument();
         expect(screen.getByText(/No persisted trace, dashboard, alert, or export-success claim is made/)).toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'What Works vs. What Requires Configuration' })).toBeInTheDocument();
+    });
+
+    it('runs the interactive SigNoz simulation workspace without claiming persisted telemetry', async () => {
+        vi.stubEnv('VITE_SIGNOZ_MODE', 'simulation');
+        installFetch(undefined, undefined, { status: 'ok', enabled: false, configured: true, exporter_active: false, service: 'geotwin-api', required_for_readiness: false });
+        renderApp('/observability');
+        expect(await screen.findByRole('heading', { name: 'SigNoz Simulation Workspace' })).toBeInTheDocument();
+        expect(screen.getByText(/not a SigNoz Cloud instance and does not claim persisted telemetry/i)).toBeInTheDocument();
+        const generate = screen.getByRole('button', { name: 'Generate observability data' });
+        await waitFor(() => expect(generate).toBeEnabled());
+        await userEvent.click(generate);
+        expect(await screen.findByRole('heading', { name: 'Flood Grid Cascade' })).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Traces' }));
+        expect(screen.getByRole('region', { name: 'Simulated SigNoz trace dashboard' })).toBeInTheDocument();
+        expect(screen.getByText('Not persisted')).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
+        expect(screen.getByRole('region', { name: 'Simulated structured logs' })).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', { name: 'Service Map' }));
+        expect(screen.getByRole('region', { name: 'Simulated service map' })).toBeInTheDocument();
     });
 
     it('runs the Wildfire + Telemetry Tampering demonstration exactly once', async () => {

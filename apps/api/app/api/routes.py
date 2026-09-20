@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
 from app.core.config import settings
-from app.core.telemetry import telemetry_status
+from app.core.telemetry import force_flush_telemetry, telemetry_status
 from app.models.domain import (
     CounterfactualExplorerResponse,
     CounterfactualRunRequest,
@@ -128,9 +128,12 @@ def scenario_detail(scenario_id: str):
 )
 def simulate(request: SimulationRequest):
     try:
-        return run_simulation(request)
+        result = run_simulation(request)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    finally:
+        force_flush_telemetry()
+    return result
 
 
 @router.get(
@@ -156,11 +159,14 @@ def counterfactual_interventions():
 )
 def counterfactual_run(request: CounterfactualRunRequest):
     try:
-        return run_counterfactual_comparison(request)
+        result = run_counterfactual_comparison(request)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    finally:
+        force_flush_telemetry()
+    return result
 
 
 @router.get(

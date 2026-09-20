@@ -67,12 +67,12 @@ The explorer reruns the same evaluator after bounded transformations such as net
 
 ### Observability
 
-FastAPI requests, digital-twin execution, agents, trust evaluation, and counterfactual evaluation emit OpenTelemetry. The UI displays a simulation trace ID and can link to a configured read-only SigNoz dashboard. Export failure is fail-open: it should not block simulation, but it reduces auditability. [Observability guide](docs/architecture/observability.md) · [SigNoz setup](docs/guides/signoz-setup.md)
+FastAPI requests, digital-twin execution, agents, trust evaluation, and counterfactual evaluation emit OpenTelemetry when export is configured. The production demo also provides an explicitly labeled SigNoz simulation workspace built from real session execution records; it does not represent those records as persisted Cloud telemetry. Export failure is fail-open: it should not block simulation, but it reduces auditability. [Observability guide](docs/architecture/observability.md) · [SigNoz setup](docs/guides/signoz-setup.md)
 
 ## Why SigNoz is Essential
 
-SigNoz is the inspection layer for the agentic workflow, not a decorative final
-screenshot. A judge can open one returned trace ID and see the API request,
+SigNoz is the intended persisted inspection layer for the agentic workflow, not a decorative final
+screenshot. When Cloud export is configured and receipt is verified, a judge can open one returned trace ID and see the API request,
 `simulation.run`, facility impacts, the three real `agent.execute` spans, trust checks,
 and counterfactual work. Agent duration and status expose the slowest or failed component;
 correlated JSON logs explain integrity warnings and human-review triggers; bounded metrics
@@ -234,7 +234,7 @@ to connect a local or hosted SigNoz destination.
 Copy the scoped examples; never commit populated `.env` files.
 
 - Backend: `APP_ENV`, `APP_VERSION`, `LOG_LEVEL`, `CORS_ALLOWED_ORIGINS`, `TRUSTED_HOSTS`, `MAX_REQUEST_BODY_BYTES`, `OTEL_ENABLED`, `OTEL_SERVICE_NAME`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_INSECURE`, `OTEL_EXPORTER_OTLP_HEADERS`, `OTEL_RESOURCE_ATTRIBUTES`.
-- Browser-public: `VITE_APP_ENV`, `VITE_APP_VERSION`, `VITE_DEPLOYMENT_NAME`, `VITE_API_BASE_URL`, `VITE_MAP_STYLE_URL`, `VITE_SIGNOZ_APP_URL`, `VITE_SIGNOZ_DASHBOARD_URL`.
+- Browser-public: `VITE_APP_ENV`, `VITE_APP_VERSION`, `VITE_DEPLOYMENT_NAME`, `VITE_API_BASE_URL`, `VITE_MAP_STYLE_URL`, `VITE_SIGNOZ_MODE`, `VITE_SIGNOZ_APP_URL`, `VITE_SIGNOZ_DASHBOARD_URL`.
 
 Only `VITE_*` values enter the browser bundle; they must never contain ingestion keys or secrets. See [configuration tables](docs/guides/local-development.md#environment-configuration).
 
@@ -301,8 +301,9 @@ Deployment steps:
 4. Set frontend `VITE_API_BASE_URL` to that API origin.
 5. Copy the frontend HTTPS origin into API `CORS_ALLOWED_ORIGINS`.
 6. Keep API `TRUSTED_HOSTS=*.onrender.com`.
-7. If using hosted SigNoz, store `OTEL_EXPORTER_OTLP_ENDPOINT` and secret `OTEL_EXPORTER_OTLP_HEADERS` only in Render's API environment.
-8. Set `VITE_SIGNOZ_APP_URL` or `VITE_SIGNOZ_DASHBOARD_URL` only to a public HTTPS, access-appropriate SigNoz URL. A local `localhost:3301` URL cannot work for evaluators.
+7. The Vercel demo builds with `VITE_SIGNOZ_MODE=simulation`, providing dynamic Overview, Traces, Logs, and Service Map views from the latest session without pretending those records are persisted in SigNoz.
+8. For real SigNoz Cloud export, store `OTEL_ENABLED=true`, the exact regional `OTEL_EXPORTER_OTLP_ENDPOINT`, and secret `OTEL_EXPORTER_OTLP_HEADERS=signoz-ingestion-key=<key>` only in the backend environment. Use TLS (`OTEL_EXPORTER_OTLP_INSECURE=false`).
+9. Set `VITE_SIGNOZ_MODE=external` and `VITE_SIGNOZ_APP_URL` only for an access-appropriate HTTPS workspace. A local `localhost:3301` URL cannot work for evaluators, and ingestion credentials must never enter a `VITE_*` value.
 9. Redeploy both services and verify the frontend, `/api/v1/health`, `/api/v1/ready`, one complete simulation, trust lookup, counterfactual comparison, and trace receipt.
 
 Render's free API can sleep after inactivity. Wake it before judging by opening

@@ -20,6 +20,8 @@ services:
         sync: false
       - key: VITE_MAP_STYLE_URL
         value: https://tiles.openfreemap.org/styles/liberty
+      - key: VITE_SIGNOZ_MODE
+        value: simulation
       - key: VITE_SIGNOZ_APP_URL
         sync: false
       - key: VITE_SIGNOZ_DASHBOARD_URL
@@ -59,3 +61,5 @@ services:
         sync: false
       - key: OTEL_RESOURCE_ATTRIBUTES
         value: deployment.platform=render
+      - key: OTEL_STARTUP_PROBE_TIMEOUT_SECONDS
+        value: "2"

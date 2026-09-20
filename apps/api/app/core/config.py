@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     otel_exporter_otlp_insecure: bool = True
     otel_exporter_otlp_headers: str = ""
     otel_resource_attributes: str = ""
+    otel_startup_probe_timeout_seconds: float = Field(default=2.0, ge=0.1, le=10)
     signoz_query_endpoint: str = "http://127.0.0.1:8123/"
     cors_allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     trusted_hosts: str = "localhost,127.0.0.1,testserver"
@@ -87,6 +88,10 @@ class Settings(BaseSettings):
 
     @property
     def public_metadata(self) -> dict[str, str | bool]:
+        endpoint_host = urlparse(self.otel_exporter_otlp_endpoint).hostname
+        export_configured = self.otel_enabled and bool(endpoint_host)
+        if self.app_env == "production" and endpoint_host in {"localhost", "127.0.0.1"}:
+            export_configured = False
         return {
             "application": "GeoTwin Sentinel",
             "environment": self.app_env,
@@ -95,8 +100,7 @@ class Settings(BaseSettings):
             "commit_sha": self.commit_sha,
             "build_timestamp": self.build_timestamp,
             "opentelemetry_enabled": self.otel_enabled,
-            "signoz_export_configured": self.otel_enabled
-            and bool(self.otel_exporter_otlp_endpoint),
+            "signoz_export_configured": export_configured,
         }
 
 

@@ -37,6 +37,7 @@ Backend public configuration:
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | yes when OTel is enabled | SigNoz OTLP endpoint |
 | `OTEL_EXPORTER_OTLP_INSECURE` | yes when OTel is enabled | Must be `false` for SigNoz Cloud |
 | `OTEL_RESOURCE_ATTRIBUTES` | no | Non-secret resource labels |
+| `OTEL_STARTUP_PROBE_TIMEOUT_SECONDS` | no | Bounded OTLP reachability timeout; default 2 seconds |
 
 Backend secret, configured only in Render's secret environment UI:
 
@@ -51,6 +52,8 @@ Browser-public Vercel configuration:
 | `VITE_DEPLOYMENT_NAME` | Public deployment label |
 | `VITE_API_BASE_URL` | Public HTTPS Render API origin |
 | `VITE_MAP_STYLE_URL` | Public MapLibre style; default is OpenFreeMap |
+| `VITE_SIGNOZ_MODE` | `simulation`, `external`, or `readiness` |
+| `VITE_SIGNOZ_APP_URL` | Optional access-appropriate HTTPS workspace for external mode |
 | `VITE_SIGNOZ_DASHBOARD_URL` | Optional public/read-only dashboard URL |
 
 Never put OTLP headers, cloud tokens, database passwords, or private URLs in `VITE_*` variables.
@@ -61,7 +64,7 @@ Never put OTLP headers, cloud tokens, database passwords, or private URLs in `VI
 2. In Render, create a Blueprint from `render.yaml`. Set `APP_VERSION`, `CORS_ALLOWED_ORIGINS`, `OTEL_EXPORTER_OTLP_ENDPOINT`, and secret `OTEL_EXPORTER_OTLP_HEADERS`. One worker preserves direct process-local lookup; bounded counterfactual requests can also replay their baseline deterministically when process state is absent.
 3. Confirm `https://<render-host>/api/v1/health`, `/ready`, `/health/observability`, and `/meta` return safe JSON.
 4. Import the repository into Vercel. `vercel.json` builds `apps/web` and serves SPA fallbacks and security headers.
-5. Set the six browser-public variables above. Use the exact Vercel origin in Render `CORS_ALLOWED_ORIGINS`.
+5. Keep `VITE_SIGNOZ_MODE=simulation` for the self-contained demo, or use `external` only with an access-appropriate SigNoz workspace. Use the exact Vercel origin in Render `CORS_ALLOWED_ORIGINS`.
 6. Deploy Vercel, then run:
 
 ```bash

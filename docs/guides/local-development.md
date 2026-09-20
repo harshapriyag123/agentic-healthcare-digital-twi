@@ -55,6 +55,7 @@ Backend loads its settings from the process environment (the application does no
 | `OTEL_EXPORTER_OTLP_INSECURE` | `true` only for local plaintext collector |
 | `OTEL_EXPORTER_OTLP_HEADERS` | Secret server-side ingestion header; never commit |
 | `OTEL_RESOURCE_ATTRIBUTES` | Non-secret `key=value` resource labels |
+| `OTEL_STARTUP_PROBE_TIMEOUT_SECONDS` | Bounded OTLP connectivity probe; default 2 seconds |
 
 | Frontend variable | Purpose |
 |---|---|
@@ -63,6 +64,8 @@ Backend loads its settings from the process environment (the application does no
 | `VITE_DEPLOYMENT_NAME` | Public footer label |
 | `VITE_API_BASE_URL` | Absolute API origin; production requires public HTTPS |
 | `VITE_MAP_STYLE_URL` | Public MapLibre style URL |
+| `VITE_SIGNOZ_MODE` | `simulation`, `external`, or `readiness` |
+| `VITE_SIGNOZ_APP_URL` | Workspace URL used only in external mode |
 | `VITE_SIGNOZ_DASHBOARD_URL` | Optional public/read-only dashboard URL |
 
 All `VITE_*` values are public. Never place an OTLP key or private dashboard token in them.

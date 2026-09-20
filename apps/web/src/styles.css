@@ -146,6 +146,7 @@ code { color: #a5f3fc; overflow-wrap: anywhere; }
 .signoz-workspace__frame iframe { display: block; width: 100%; height: 100%; min-height: 620px; border: 0; background: #0b1726; }
 .signoz-workspace__loading { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; background: #07111dee; color: #a5f3fc; }
 .signoz-native { display: grid; gap: .8rem; }
+.signoz-simulation-notice { margin: 0; }
 .signoz-native__content { min-height: 620px; padding: 1rem; border: 1px solid #31506e; border-radius: .75rem; background: #07111d; }
 .signoz-native-kpis { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: .7rem; margin-bottom: .8rem; }
 .signoz-native-kpis article,.signoz-native-service { display: grid; gap: .3rem; padding: .9rem; border: 1px solid #1d3048; border-radius: .65rem; background: #091625; }
@@ -161,7 +162,7 @@ code { color: #a5f3fc; overflow-wrap: anywhere; }
 .signoz-native-logs { display: grid; gap: .5rem; }
 .signoz-native-logs article { display: grid; grid-template-columns: 140px 1fr auto; gap: .5rem; padding: .7rem; border-left: 3px solid #22d3ee; background: #091625; }
 .signoz-native-logs p { grid-column: 2/-1; margin: 0; color: var(--muted); }
-.signoz-native-map { display: flex; align-items: stretch; justify-content: center; gap: .7rem; padding: 2rem 0; }
+.signoz-native-map { display: flex; align-items: stretch; justify-content: center; gap: .7rem; padding: 2rem 0; overflow-x: auto; }
 .signoz-native-map article { display: grid; place-content: center; min-width: 150px; min-height: 100px; padding: 1rem; border: 1px solid #22d3ee; border-radius: .7rem; background: #091625; text-align: center; }
 .signoz-native-map small { margin-top: .4rem; color: var(--muted); }
 .signoz-native-map i { align-self: center; color: #67e8f9; font-size: 1.5rem; }
